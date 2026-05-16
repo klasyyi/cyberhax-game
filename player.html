@@ -59,9 +59,12 @@
   .tile-num { font-size: 48px; font-weight: 700; color: #7ec8ff; line-height: 1; }
   .tile-label { font-size: 12px; color: #3a6a9a; margin-top: 4px; }
 
+  /* Score display */
+  .score-display { display: inline-block; margin-left: 12px; font-size: 20px; font-weight: 700; color: #f5c23d; }
+  .score-label { font-size: 12px; color: #3a6a9a; margin-top: 2px; }
+
   .dice-face { font-size: 56px; text-align: center; margin: 10px 0; line-height: 1; min-height: 64px; }
 
-  /* Question */
   .q-cat { font-size: 11px; color: #3fa0ff; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
   .q-text { font-size: 16px; color: #c5dff8; line-height: 1.5; margin-bottom: 16px; font-weight: 500; }
   .q-opts { display: flex; flex-direction: column; gap: 8px; }
@@ -89,7 +92,9 @@
   .p-row.me { border-color: #1a6fdb; background: #0d2040; }
   .p-avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
   .p-name { font-size: 13px; flex: 1; }
-  .p-tile { font-size: 12px; color: #3a6a9a; }
+  .p-tile { font-size: 11px; color: #3a6a9a; }
+  /* FIXED: score shown in player list */
+  .p-score { font-size: 12px; font-weight: 700; color: #f5c23d; }
 
   .hidden { display: none; }
 
@@ -120,8 +125,16 @@
   <div class="card" style="text-align:center;">
     <div class="status-pill waiting" id="status-pill">Waiting...</div>
     <div class="tile-display">
-      <div class="tile-num" id="my-tile">1</div>
-      <div class="tile-label">current tile</div>
+      <div style="display:inline-flex;gap:24px;align-items:flex-end;">
+        <div>
+          <div class="tile-num" id="my-tile">1</div>
+          <div class="tile-label">current tile</div>
+        </div>
+        <div>
+          <div class="score-display" id="my-score">0</div>
+          <div class="score-label">pts</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -147,7 +160,7 @@
     <div class="result-box hidden" id="q-result"></div>
   </div>
 
-  <!-- Players card -->
+  <!-- Players card — FIXED: score shown -->
   <div class="card">
     <h2>Players</h2>
     <div class="player-list" id="p-list"></div>
@@ -206,7 +219,6 @@
 
   let myId = null;
   let myName = '';
-  let gameUnsub = null;
 
   window.joinGame = async function() {
     const input = document.getElementById('name-input');
@@ -221,11 +233,10 @@
     myId = 'p_' + Date.now();
     myName = name;
 
-    // Add score: 0 to the initial state
     const myPlayerRef = ref(db, `game/players/${myId}`);
     await set(myPlayerRef, { name, pos: 1, score: 0, joined: Date.now() });
-  
-    // MAGIC FIX: Tells Firebase to delete this player if the socket connection drops (tab closed)
+
+    // FIXED: properly wire onDisconnect so Firebase auto-removes player on tab close
     onDisconnect(myPlayerRef).remove();
 
     if (count === 0) {
@@ -240,7 +251,7 @@
   };
 
   function listenGame() {
-    gameUnsub = onValue(ref(db, 'game'), snap => {
+    onValue(ref(db, 'game'), snap => {
       const game = snap.val();
       if (!game) return;
       const players = game.players || {};
@@ -249,25 +260,29 @@
       const qState = game.question;
       const isMyTurn = currentTurn === myId;
 
-      // Update tile
       const me = players[myId];
       if (!me) return;
-      document.getElementById('my-tile').textContent = me.pos || 1;
 
-      // Players list
+      document.getElementById('my-tile').textContent = me.pos || 1;
+      document.getElementById('my-score').textContent = me.score || 0;
+
+      // FIXED: score shown in player list, sorted by score
       const pList = document.getElementById('p-list');
       pList.innerHTML = '';
-      Object.entries(players).forEach(([id,p],i) => {
-        const row = document.createElement('div');
-        row.className = 'p-row' + (id===myId?' me':'');
-        const c = PLAYER_COLORS[i % PLAYER_COLORS.length];
-        row.innerHTML = `
-          <div class="p-avatar" style="background:${c.bg};border:1.5px solid ${c.border};color:${c.text};">${(p.name||'?')[0].toUpperCase()}</div>
-          <span class="p-name">${p.name}${id===myId?' (you)':''}</span>
-          <span class="p-tile">Tile ${p.pos||1}</span>
-        `;
-        pList.appendChild(row);
-      });
+      Object.entries(players)
+        .sort((a,b) => (b[1].score||0) - (a[1].score||0))
+        .forEach(([id,p],i) => {
+          const row = document.createElement('div');
+          row.className = 'p-row' + (id===myId?' me':'');
+          const c = PLAYER_COLORS[i % PLAYER_COLORS.length];
+          row.innerHTML = `
+            <div class="p-avatar" style="background:${c.bg};border:1.5px solid ${c.border};color:${c.text};">${(p.name||'?')[0].toUpperCase()}</div>
+            <span class="p-name">${p.name}${id===myId?' (you)':''}</span>
+            <span class="p-tile">T${p.pos||1}</span>
+            <span class="p-score">${p.score||0}pt</span>
+          `;
+          pList.appendChild(row);
+        });
 
       // Win check
       if (status === 'finished') {
@@ -338,7 +353,6 @@
     result.textContent = correct ? '✅ Correct! +1 Point! Roll again!' : '❌ Wrong! Your turn ends.';
     result.classList.remove('hidden');
 
-    // Increment score if correct
     if (correct) {
       const meSnap = await get(ref(db, `game/players/${myId}`));
       const currentScore = meSnap.val()?.score || 0;
