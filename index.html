@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CYBERHAX — Host Board</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #050d1a; font-family: 'Segoe UI', sans-serif; color: #c5dff8; min-height: 100vh; padding: 16px; }
+
+  h1 { text-align: center; font-size: 28px; font-weight: 600; letter-spacing: 4px; color: #7ec8ff; margin-bottom: 4px; }
+  .subtitle { text-align: center; font-size: 13px; color: #3fa0ff; margin-bottom: 14px; letter-spacing: 1px; }
+
+  .main { display: flex; gap: 16px; align-items: flex-start; justify-content: center; }
+
+  /* BOARD */
+  .board-wrap { flex-shrink: 0; }
+  .board { display: grid; grid-template-columns: repeat(10, 68px); gap: 4px; }
+  .tile {
+    width: 68px; height: 62px;
+    border-radius: 8px;
+    border: 1.5px solid #1a3050;
+    background: #0a1628;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-size: 11px; color: #3a6a9a;
+    position: relative;
+    transition: box-shadow 0.3s;
+  }
+  .tile.cyber {
+    background: #08213d;
+    border-color: #1a6fdb;
+    color: #7ec8ff;
+    box-shadow: 0 0 10px #1a6fdb55, inset 0 0 8px #0d3a7022;
+    animation: pulse 2.5s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 8px #1a6fdb55; }
+    50% { box-shadow: 0 0 18px #1a6fdbaa; }
+  }
+  .tile.start { background: #0c3d20; border-color: #1d9e75; color: #5dcaa5; }
+  .tile.finish { background: #3a0c2a; border-color: #d4537e; color: #ed93b1; }
+  .tnum { font-size: 10px; line-height: 1; margin-bottom: 2px; }
+  .ticon { font-size: 15px; }
+  .markers { display: flex; gap: 2px; flex-wrap: wrap; justify-content: center; margin-top: 2px; }
+  .marker { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid #fff3; font-size: 7px; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+
+  /* SIDE PANEL */
+  .panel { width: 260px; display: flex; flex-direction: column; gap: 12px; }
+
+  .card {
+    background: #0a1628;
+    border: 1px solid #1a3050;
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .card h3 { font-size: 13px; font-weight: 600; color: #3fa0ff; letter-spacing: 1px; margin-bottom: 10px; text-transform: uppercase; }
+
+  /* QR */
+  .qr-box { text-align: center; }
+  .qr-box img { width: 160px; height: 160px; border-radius: 8px; border: 2px solid #1a6fdb; }
+  .qr-url { font-size: 11px; color: #3fa0ff; margin-top: 6px; word-break: break-all; }
+
+  /* PLAYERS */
+  .player-list { display: flex; flex-direction: column; gap: 7px; }
+  .player-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid #1a3050;
+    background: #0d1f3a;
+  }
+  .player-row.active { border-color: #1a6fdb; background: #0d2040; }
+  .avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+  .pname { font-size: 13px; color: #c5dff8; flex: 1; }
+  .ppos { font-size: 11px; color: #3a6a9a; }
+  .ptag { font-size: 10px; padding: 2px 7px; border-radius: 10px; }
+  .ptag.active { background: #1a3a6a; color: #7ec8ff; }
+  .ptag.waiting { background: #1a3020; color: #5dcaa5; }
+
+  /* LOG */
+  .log { max-height: 160px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+  .log-entry { font-size: 11px; color: #5a8aaa; padding: 4px 8px; border-radius: 6px; background: #0d1f3a; }
+  .log-entry.good { color: #5dcaa5; background: #0c3d2080; }
+  .log-entry.bad { color: #f09595; background: #28080880; }
+  .log-entry.cyber { color: #7ec8ff; background: #0a162880; }
+
+  /* QUESTION OVERLAY */
+  .q-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: #000000cc;
+    z-index: 100;
+    align-items: center; justify-content: center;
+  }
+  .q-overlay.show { display: flex; }
+  .q-box {
+    background: #08213d;
+    border: 2px solid #1a6fdb;
+    border-radius: 16px;
+    padding: 28px 32px;
+    max-width: 560px; width: 90%;
+    box-shadow: 0 0 40px #1a6fdb66;
+  }
+  .q-cat { font-size: 11px; color: #3fa0ff; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+  .q-who { font-size: 14px; color: #7ec8ff; margin-bottom: 6px; }
+  .q-text { font-size: 18px; color: #c5dff8; line-height: 1.5; margin-bottom: 20px; font-weight: 500; }
+  .q-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .q-opt {
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid #1a6fdb55;
+    background: #0d2040;
+    color: #c5dff8;
+    font-size: 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .q-opt .letter { font-size: 11px; color: #3fa0ff; font-weight: 700; }
+  .q-opt.correct { border-color: #1d9e75; background: #0c3d20; color: #5dcaa5; }
+  .q-opt.wrong { border-color: #a32d2d; background: #280a0a; color: #f09595; }
+
+  .status-bar { text-align: center; font-size: 13px; color: #3fa0ff; padding: 8px; background: #0a1628; border: 1px solid #1a3050; border-radius: 8px; }
+
+  .no-players { text-align: center; color: #3a6a9a; font-size: 13px; padding: 12px 0; }
+</style>
+</head>
+<body>
+
+<h1>&#x1F5A5; CYBERHAX</h1>
+<p class="subtitle">HOST BOARD &mdash; CYBERHAX CLUB</p>
+
+<div class="main">
+  <div class="board-wrap">
+    <div class="board" id="board"></div>
+  </div>
+
+  <div class="panel">
+    <div class="card qr-box">
+      <h3>Scan to Join</h3>
+      <img id="qr-img" src="" alt="QR Code" />
+      <p class="qr-url" id="qr-url"></p>
+    </div>
+
+    <div class="card">
+      <h3>Players</h3>
+      <div class="player-list" id="player-list">
+        <p class="no-players">Waiting for players to join...</p>
+      </div>
+    </div>
+
+    <div class="card status-bar" id="status-bar">Waiting for players...</div>
+
+    <div class="card">
+      <h3>Game Log</h3>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+</div>
+
+<div class="q-overlay" id="q-overlay">
+  <div class="q-box">
+    <div class="q-cat" id="q-cat"></div>
+    <div class="q-who" id="q-who"></div>
+    <div class="q-text" id="q-text"></div>
+    <div class="q-opts" id="q-opts"></div>
+  </div>
+</div>
+
+<script src="firebase-config.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  const CYBER_TILES = new Set([3,7,11,15,18,22,25,29,33,36,39,42,45,48]);
+  const PLAYER_COLORS = [
+    {bg:'#1a3a5c',border:'#378add',text:'#85b7eb'},
+    {bg:'#3a1a0c',border:'#d85a30',text:'#f0997b'},
+    {bg:'#1a3a1a',border:'#1d9e75',text:'#5dcaa5'},
+    {bg:'#3a1a2e',border:'#d4537e',text:'#ed93b1'},
+  ];
+
+  const QUESTIONS = [
+    {q:"What does 'phishing' refer to?", opts:["Attacking servers directly","Tricking users into revealing credentials","Encrypting files for ransom","Sniffing network traffic"], ans:1, cat:"Social Engineering"},
+    {q:"What port does HTTPS use by default?", opts:["80","21","443","8080"], ans:2, cat:"Networking"},
+    {q:"What is a zero-day vulnerability?", opts:["A bug fixed within 24 hours","An exploit unknown to the vendor","A daily scheduled scan","A firewall misconfiguration"], ans:1, cat:"Vulnerabilities"},
+    {q:"Which algorithm is asymmetric encryption?", opts:["AES","DES","RSA","3DES"], ans:2, cat:"Cryptography"},
+    {q:"What does SQL injection exploit?", opts:["Weak passwords","Unvalidated user input in queries","Open ports","Outdated antivirus"], ans:1, cat:"Web Security"},
+    {q:"What is a VPN primarily used for?", opts:["Speed up internet","Encrypt and tunnel traffic","Block ads","Manage passwords"], ans:1, cat:"Networking"},
+    {q:"What does CIA stand for in cybersecurity?", opts:["Control, Integrity, Access","Confidentiality, Integrity, Availability","Cipher, Identity, Authentication","Central Intelligence Agency"], ans:1, cat:"Fundamentals"},
+    {q:"What is a brute-force attack?", opts:["Physically breaking hardware","Trying all possible passwords","Exploiting software bugs","Intercepting packets"], ans:1, cat:"Attacks"},
+    {q:"What is two-factor authentication (2FA)?", opts:["Two passwords","Password + a second verification factor","Biometric only","Encrypted login"], ans:1, cat:"Authentication"},
+    {q:"What does a firewall do?", opts:["Encrypts data","Monitors and filters network traffic","Scans for viruses","Generates passwords"], ans:1, cat:"Defense"},
+    {q:"What is ransomware?", opts:["Spyware that steals data","Malware that encrypts files for payment","A phishing email","A DoS tool"], ans:1, cat:"Malware"},
+    {q:"What is steganography?", opts:["Encrypting messages","Hiding data inside other files","Breaking ciphers","Password cracking"], ans:1, cat:"Cryptography"},
+    {q:"Which protocol is used to securely log into remote servers?", opts:["FTP","Telnet","SSH","HTTP"], ans:2, cat:"Protocols"},
+    {q:"What does 'OSINT' stand for?", opts:["Open Source Intelligence","Operational Security Interface","Online Security Integration","Object Signal Intelligence"], ans:0, cat:"Reconnaissance"},
+  ];
+
+  function buildTileOrder() {
+    const rows = [];
+    for (let r=0;r<5;r++) {
+      const start=r*10+1, row=[];
+      for (let t=start;t<start+10;t++) row.push(t);
+      rows.push(r%2===0?row:[...row].reverse());
+    }
+    return rows.flat();
+  }
+
+  const tileOrder = buildTileOrder();
+
+  function renderBoard(players) {
+    const board = document.getElementById('board');
+    board.innerHTML = '';
+    tileOrder.forEach(n => {
+      const div = document.createElement('div');
+      div.className = 'tile' + (CYBER_TILES.has(n)?' cyber':'') + (n===1?' start':'') + (n===50?' finish':'');
+      div.id = 'tile-'+n;
+
+      const num = document.createElement('div');
+      num.className = 'tnum';
+      num.textContent = n;
+
+      const icon = document.createElement('div');
+      icon.className = 'ticon';
+      if (n===1) icon.textContent = '🚩';
+      else if (n===50) icon.textContent = '🏆';
+      else if (CYBER_TILES.has(n)) icon.textContent = '🔵';
+
+      const markers = document.createElement('div');
+      markers.className = 'markers';
+
+      if (players) {
+        Object.values(players).forEach((p,i) => {
+          if (p.pos === n) {
+            const m = document.createElement('div');
+            m.className = 'marker';
+            const c = PLAYER_COLORS[i % PLAYER_COLORS.length];
+            m.style.background = c.bg;
+            m.style.borderColor = c.border;
+            m.style.color = c.text;
+            m.textContent = (p.name||'?')[0].toUpperCase();
+            markers.appendChild(m);
+          }
+        });
+      }
+
+      div.appendChild(num);
+      div.appendChild(icon);
+      div.appendChild(markers);
+      board.appendChild(div);
+    });
+  }
+
+  function renderPlayers(players, currentTurn) {
+    const list = document.getElementById('player-list');
+    if (!players || Object.keys(players).length === 0) {
+      list.innerHTML = '<p class="no-players">Waiting for players to join...</p>';
+      return;
+    }
+    list.innerHTML = '';
+    Object.entries(players).forEach(([id, p], i) => {
+      const isActive = currentTurn === id;
+      const c = PLAYER_COLORS[i % PLAYER_COLORS.length];
+      const row = document.createElement('div');
+      row.className = 'player-row' + (isActive?' active':'');
+      row.innerHTML = `
+        <div class="avatar" style="background:${c.bg};border:1.5px solid ${c.border};color:${c.text};">${(p.name||'?')[0].toUpperCase()}</div>
+        <span class="pname">${p.name||'Unknown'}</span>
+        <span class="ppos">Tile ${p.pos||1}</span>
+        <span class="ptag ${isActive?'active':'waiting'}">${isActive?'Rolling':'Waiting'}</span>
+      `;
+      list.appendChild(row);
+    });
+  }
+
+  let logs = [];
+  function addLog(msg, type='') {
+    logs.unshift({msg,type});
+    if(logs.length>20) logs.pop();
+    const el = document.getElementById('log');
+    el.innerHTML = logs.map(l=>`<div class="log-entry ${l.type}">${l.msg}</div>`).join('');
+  }
+
+  let lastLog = '';
+  function showQuestion(q, playerName, answered, correct) {
+    const overlay = document.getElementById('q-overlay');
+    if (answered) { overlay.classList.remove('show'); return; }
+    overlay.classList.add('show');
+    document.getElementById('q-cat').textContent = '🔵 ' + q.cat;
+    document.getElementById('q-who').textContent = playerName + ' is answering...';
+    document.getElementById('q-text').textContent = q.q;
+    const optsEl = document.getElementById('q-opts');
+    optsEl.innerHTML = q.opts.map((o,i)=>`
+      <div class="q-opt ${answered&&i===q.ans?'correct':answered&&i===correct?'wrong':''}">
+        <span class="letter">${String.fromCharCode(65+i)}</span>${o}
+      </div>`).join('');
+  }
+
+  // QR Code
+  const playerUrl = 'https://klasyyi.github.io/cyberhax-game/player.html';
+  document.getElementById('qr-url').textContent = playerUrl;
+  document.getElementById('qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(playerUrl)}&bgcolor=08213d&color=3fa0ff&qzone=1`;
+
+  // Listen to game state
+  onValue(ref(db, 'game'), snap => {
+    const game = snap.val() || {};
+    const players = game.players || {};
+    const currentTurn = game.currentTurn || null;
+    const status = game.status || 'waiting';
+    const qState = game.question || null;
+    const logMsg = game.lastLog || '';
+
+    renderBoard(players);
+    renderPlayers(players, currentTurn);
+
+    if (logMsg && logMsg !== lastLog) { addLog(logMsg, game.lastLogType||''); lastLog = logMsg; }
+
+    const pCount = Object.keys(players).length;
+    const statusBar = document.getElementById('status-bar');
+
+    if (status === 'waiting') statusBar.textContent = `Waiting for players... (${pCount} joined)`;
+    else if (status === 'playing') {
+      const cp = players[currentTurn];
+      statusBar.textContent = cp ? `${cp.name}'s turn` : 'Game in progress';
+    }
+    else if (status === 'finished') {
+      const winner = Object.values(players).find(p=>p.pos>=50);
+      statusBar.textContent = winner ? `🏆 ${winner.name} wins!` : 'Game over!';
+    }
+
+    if (qState && !qState.answered) {
+      const q = QUESTIONS[qState.qIdx];
+      const pName = players[currentTurn]?.name || 'Player';
+      showQuestion(q, pName, false, -1);
+    } else {
+      document.getElementById('q-overlay').classList.remove('show');
+    }
+  });
+
+  renderBoard({});
+</script>
+</body>
+</html>
