@@ -221,7 +221,12 @@
     myId = 'p_' + Date.now();
     myName = name;
 
-    await set(ref(db, `game/players/${myId}`), { name, pos: 1, joined: Date.now() });
+    // Add score: 0 to the initial state
+    const myPlayerRef = ref(db, `game/players/${myId}`);
+    await set(myPlayerRef, { name, pos: 1, score: 0, joined: Date.now() });
+  
+    // MAGIC FIX: Tells Firebase to delete this player if the socket connection drops (tab closed)
+    onDisconnect(myPlayerRef).remove();
 
     if (count === 0) {
       await update(ref(db, 'game'), { status: 'waiting', currentTurn: myId, lastLog: `${name} created the game`, lastLogType: 'good' });
@@ -330,13 +335,20 @@
 
     const result = document.getElementById('q-result');
     result.className = 'result-box ' + (correct?'correct':'wrong');
-    result.textContent = correct ? '✅ Correct! Roll again!' : '❌ Wrong! Your turn ends.';
+    result.textContent = correct ? '✅ Correct! +1 Point! Roll again!' : '❌ Wrong! Your turn ends.';
     result.classList.remove('hidden');
+
+    // Increment score if correct
+    if (correct) {
+      const meSnap = await get(ref(db, `game/players/${myId}`));
+      const currentScore = meSnap.val()?.score || 0;
+      await update(ref(db, `game/players/${myId}`), { score: currentScore + 1 });
+    }
 
     await update(ref(db, 'game'), {
       'question/answered': true,
       'question/correct': correct,
-      lastLog: correct ? `✅ ${myName} answered correctly! Rolling again!` : `❌ ${myName} got it wrong. Next player's turn.`,
+      lastLog: correct ? `✅ ${myName} answered correctly and gained 1 pt! Rolling again!` : `❌ ${myName} got it wrong. Next player's turn.`,
       lastLogType: correct ? 'good' : 'bad'
     });
 
