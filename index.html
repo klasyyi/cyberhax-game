@@ -13,7 +13,6 @@
 
   .main { display: flex; gap: 16px; align-items: flex-start; justify-content: center; }
 
-  /* BOARD */
   .board-wrap { flex-shrink: 0; }
   .board { display: grid; grid-template-columns: repeat(10, 68px); gap: 4px; }
   .tile {
@@ -45,7 +44,6 @@
   .markers { display: flex; gap: 2px; flex-wrap: wrap; justify-content: center; margin-top: 2px; }
   .marker { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid #fff3; font-size: 7px; display: flex; align-items: center; justify-content: center; font-weight: 700; }
 
-  /* SIDE PANEL */
   .panel { width: 260px; display: flex; flex-direction: column; gap: 12px; }
 
   .card {
@@ -56,12 +54,10 @@
   }
   .card h3 { font-size: 13px; font-weight: 600; color: #3fa0ff; letter-spacing: 1px; margin-bottom: 10px; text-transform: uppercase; }
 
-  /* QR */
   .qr-box { text-align: center; }
   .qr-box img { width: 160px; height: 160px; border-radius: 8px; border: 2px solid #1a6fdb; }
   .qr-url { font-size: 11px; color: #3fa0ff; margin-top: 6px; word-break: break-all; }
 
-  /* PLAYERS */
   .player-list { display: flex; flex-direction: column; gap: 7px; }
   .player-row {
     display: flex; align-items: center; gap: 10px;
@@ -78,14 +74,12 @@
   .ptag.active { background: #1a3a6a; color: #7ec8ff; }
   .ptag.waiting { background: #1a3020; color: #5dcaa5; }
 
-  /* LOG */
   .log { max-height: 160px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
   .log-entry { font-size: 11px; color: #5a8aaa; padding: 4px 8px; border-radius: 6px; background: #0d1f3a; }
   .log-entry.good { color: #5dcaa5; background: #0c3d2080; }
   .log-entry.bad { color: #f09595; background: #28080880; }
   .log-entry.cyber { color: #7ec8ff; background: #0a162880; }
 
-  /* QUESTION OVERLAY */
   .q-overlay {
     display: none;
     position: fixed; inset: 0;
@@ -120,15 +114,31 @@
   .q-opt.wrong { border-color: #a32d2d; background: #280a0a; color: #f09595; }
 
   .status-bar { text-align: center; font-size: 13px; color: #3fa0ff; padding: 8px; background: #0a1628; border: 1px solid #1a3050; border-radius: 8px; }
-
   .no-players { text-align: center; color: #3a6a9a; font-size: 13px; padding: 12px 0; }
 
-  /* Admin Buttons */
   .admin-panel { display: flex; gap: 8px; margin-top: 10px; }
   .btn-reset { flex: 1; padding: 8px; background: #280a0a; border: 1px solid #a32d2d; color: #f09595; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; transition: 0.2s; }
   .btn-reset:hover { background: #4a1010; }
   .btn-kick { background: #1a0808; border: 1px solid #a32d2d; color: #f09595; border-radius: 4px; padding: 3px 8px; font-size: 10px; cursor: pointer; }
-  .btn-kick:hover { background: #a32d2d; color: #fff; } 
+  .btn-kick:hover { background: #a32d2d; color: #fff; }
+
+  /* Admin lock overlay */
+  .admin-lock { display: flex; flex-direction: column; gap: 8px; }
+  .admin-lock input {
+    width: 100%; padding: 7px 10px;
+    background: #0d1f3a; border: 1px solid #1a6fdb55;
+    border-radius: 6px; color: #c5dff8; font-size: 13px;
+    font-family: 'Segoe UI', sans-serif; outline: none;
+  }
+  .admin-lock input:focus { border-color: #1a6fdb; }
+  .admin-lock input::placeholder { color: #3a6a9a; }
+  .admin-lock button {
+    padding: 7px; background: #0d2040; border: 1px solid #1a6fdb;
+    color: #7ec8ff; border-radius: 6px; cursor: pointer;
+    font-size: 12px; font-weight: 600; font-family: 'Segoe UI', sans-serif;
+  }
+  .admin-lock button:hover { background: #1a3a6a; }
+  .admin-err { font-size: 11px; color: #f09595; min-height: 16px; }
 </style>
 </head>
 <body>
@@ -148,19 +158,14 @@
       <p class="qr-url" id="qr-url"></p>
     </div>
 
+    <!-- FIXED: single player-list card with admin controls -->
     <div class="card">
       <h3>Players</h3>
       <div class="player-list" id="player-list">
         <p class="no-players">Waiting for players to join...</p>
       </div>
-      <div class="card">
-        <h3>Players</h3>
-        <div class="player-list" id="player-list">
-          <p class="no-players">Waiting for players to join...</p>
-        </div>
-        <div class="admin-panel">
-          <button class="btn-reset" onclick="resetGame()">⚠️ RESTART GAME</button>
-        </div>
+      <div class="admin-panel">
+        <button class="btn-reset" id="btn-reset" onclick="resetGame()" style="display:none;">⚠️ RESTART GAME</button>
       </div>
     </div>
 
@@ -169,6 +174,19 @@
     <div class="card">
       <h3>Game Log</h3>
       <div class="log" id="log"></div>
+    </div>
+
+    <!-- Admin unlock panel -->
+    <div class="card">
+      <h3>&#x1F510; Admin</h3>
+      <div class="admin-lock" id="admin-lock">
+        <input type="password" id="admin-pw" placeholder="Admin password..." />
+        <button onclick="unlockAdmin()">UNLOCK</button>
+        <div class="admin-err" id="admin-err"></div>
+      </div>
+      <div id="admin-unlocked" style="display:none;">
+        <p style="font-size:11px;color:#5dcaa5;margin-bottom:6px;">✅ Admin unlocked</p>
+      </div>
     </div>
   </div>
 </div>
@@ -185,7 +203,7 @@
 <script src="firebase-config.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getDatabase, ref, onValue, set, get, update, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
@@ -197,6 +215,8 @@
     {bg:'#1a3a1a',border:'#1d9e75',text:'#5dcaa5'},
     {bg:'#3a1a2e',border:'#d4537e',text:'#ed93b1'},
   ];
+  const ADMIN_PASSWORD = 'cyberhax';
+  let adminUnlocked = false;
 
   const QUESTIONS = [
     {q:"What does 'phishing' refer to?", opts:["Attacking servers directly","Tricking users into revealing credentials","Encrypting files for ransom","Sniffing network traffic"], ans:1, cat:"Social Engineering"},
@@ -224,7 +244,6 @@
     }
     return rows.flat();
   }
-
   const tileOrder = buildTileOrder();
 
   function renderBoard(players) {
@@ -234,51 +253,52 @@
       const div = document.createElement('div');
       div.className = 'tile' + (CYBER_TILES.has(n)?' cyber':'') + (n===1?' start':'') + (n===50?' finish':'');
       div.id = 'tile-'+n;
-
-      const num = document.createElement('div');
-      num.className = 'tnum';
-      num.textContent = n;
-
-      const icon = document.createElement('div');
-      icon.className = 'ticon';
+      const num = document.createElement('div'); num.className = 'tnum'; num.textContent = n;
+      const icon = document.createElement('div'); icon.className = 'ticon';
       if (n===1) icon.textContent = '🚩';
       else if (n===50) icon.textContent = '🏆';
       else if (CYBER_TILES.has(n)) icon.textContent = '🔵';
-
-      const markers = document.createElement('div');
-      markers.className = 'markers';
-
+      const markers = document.createElement('div'); markers.className = 'markers';
       if (players) {
         Object.values(players).forEach((p,i) => {
           if (p.pos === n) {
-            const m = document.createElement('div');
-            m.className = 'marker';
+            const m = document.createElement('div'); m.className = 'marker';
             const c = PLAYER_COLORS[i % PLAYER_COLORS.length];
-            m.style.background = c.bg;
-            m.style.borderColor = c.border;
-            m.style.color = c.text;
+            m.style.background = c.bg; m.style.borderColor = c.border; m.style.color = c.text;
             m.textContent = (p.name||'?')[0].toUpperCase();
             markers.appendChild(m);
           }
         });
       }
-
-      div.appendChild(num);
-      div.appendChild(icon);
-      div.appendChild(markers);
+      div.appendChild(num); div.appendChild(icon); div.appendChild(markers);
       board.appendChild(div);
     });
   }
 
-  // Make these accessible to the global window object for inline HTML onclick handlers
+  // Password-protected admin actions
+  window.unlockAdmin = function() {
+    const pw = document.getElementById('admin-pw').value;
+    if (pw === ADMIN_PASSWORD) {
+      adminUnlocked = true;
+      document.getElementById('admin-lock').style.display = 'none';
+      document.getElementById('admin-unlocked').style.display = 'block';
+      document.getElementById('btn-reset').style.display = 'block';
+    } else {
+      document.getElementById('admin-err').textContent = 'Wrong password!';
+      setTimeout(() => document.getElementById('admin-err').textContent = '', 2000);
+    }
+  };
+
   window.kickPlayer = async function(playerId) {
-    if(confirm('Kick this player?')) {
+    if (!adminUnlocked) return;
+    if (confirm('Kick this player?')) {
       await remove(ref(db, `game/players/${playerId}`));
     }
   };
 
   window.resetGame = async function() {
-    if(confirm('Are you sure you want to completely restart the game? This removes all players.')) {
+    if (!adminUnlocked) return;
+    if (confirm('Are you sure you want to completely restart the game? This removes all players.')) {
       await set(ref(db, 'game'), null);
     }
   };
@@ -295,15 +315,14 @@
       const c = PLAYER_COLORS[i % PLAYER_COLORS.length];
       const row = document.createElement('div');
       row.className = 'player-row' + (isActive?' active':'');
-      // Added score display and Kick button
       row.innerHTML = `
         <div class="avatar" style="background:${c.bg};border:1.5px solid ${c.border};color:${c.text};">${(p.name||'?')[0].toUpperCase()}</div>
-        <div style="flex: 1; display: flex; flex-direction: column;">
-          <span class="pname">${p.name||'Unknown'} <span style="color:#5dcaa5; font-size:11px;">(${p.score||0} pts)</span></span>
+        <div style="flex:1;display:flex;flex-direction:column;">
+          <span class="pname">${p.name||'Unknown'} <span style="color:#5dcaa5;font-size:11px;">(${p.score||0} pts)</span></span>
           <span class="ppos">Tile ${p.pos||1}</span>
         </div>
         <span class="ptag ${isActive?'active':'waiting'}">${isActive?'Rolling':'Waiting'}</span>
-        <button class="btn-kick" onclick="kickPlayer('${id}')">Kick</button>
+        ${adminUnlocked ? `<button class="btn-kick" onclick="kickPlayer('${id}')">Kick</button>` : ''}
       `;
       list.appendChild(row);
     });
@@ -313,8 +332,7 @@
   function addLog(msg, type='') {
     logs.unshift({msg,type});
     if(logs.length>20) logs.pop();
-    const el = document.getElementById('log');
-    el.innerHTML = logs.map(l=>`<div class="log-entry ${l.type}">${l.msg}</div>`).join('');
+    document.getElementById('log').innerHTML = logs.map(l=>`<div class="log-entry ${l.type}">${l.msg}</div>`).join('');
   }
 
   let lastLog = '';
@@ -325,22 +343,18 @@
     document.getElementById('q-cat').textContent = '🔵 ' + q.cat;
     document.getElementById('q-who').textContent = playerName + ' is answering...';
     document.getElementById('q-text').textContent = q.q;
-    const optsEl = document.getElementById('q-opts');
-    optsEl.innerHTML = q.opts.map((o,i)=>`
+    document.getElementById('q-opts').innerHTML = q.opts.map((o,i)=>`
       <div class="q-opt ${answered&&i===q.ans?'correct':answered&&i===correct?'wrong':''}">
         <span class="letter">${String.fromCharCode(65+i)}</span>${o}
       </div>`).join('');
   }
 
-  // --- DYNAMIC QR CODE LOGIC ---
-  // Automatically grabs the current domain and path
+  // Dynamic QR — works for both GitHub Pages and Vercel
   const basePath = window.location.href.replace('index.html', '').replace(/\/$/, '');
   const dynamicPlayerUrl = basePath + '/player.html';
-  
   document.getElementById('qr-url').textContent = dynamicPlayerUrl;
   document.getElementById('qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(dynamicPlayerUrl)}&bgcolor=08213d&color=3fa0ff&qzone=1`;
 
-  // Listen to game state
   onValue(ref(db, 'game'), snap => {
     const game = snap.val() || {};
     const players = game.players || {};
@@ -356,7 +370,6 @@
 
     const pCount = Object.keys(players).length;
     const statusBar = document.getElementById('status-bar');
-
     if (status === 'waiting') statusBar.textContent = `Waiting for players... (${pCount} joined)`;
     else if (status === 'playing') {
       const cp = players[currentTurn];
@@ -379,4 +392,6 @@
   renderBoard({});
 </script>
 </body>
+</html>
+
 </html>
