@@ -122,6 +122,13 @@
   .status-bar { text-align: center; font-size: 13px; color: #3fa0ff; padding: 8px; background: #0a1628; border: 1px solid #1a3050; border-radius: 8px; }
 
   .no-players { text-align: center; color: #3a6a9a; font-size: 13px; padding: 12px 0; }
+
+  /* Admin Buttons */
+  .admin-panel { display: flex; gap: 8px; margin-top: 10px; }
+  .btn-reset { flex: 1; padding: 8px; background: #280a0a; border: 1px solid #a32d2d; color: #f09595; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; transition: 0.2s; }
+  .btn-reset:hover { background: #4a1010; }
+  .btn-kick { background: #1a0808; border: 1px solid #a32d2d; color: #f09595; border-radius: 4px; padding: 3px 8px; font-size: 10px; cursor: pointer; }
+  .btn-kick:hover { background: #a32d2d; color: #fff; } 
 </style>
 </head>
 <body>
@@ -145,6 +152,15 @@
       <h3>Players</h3>
       <div class="player-list" id="player-list">
         <p class="no-players">Waiting for players to join...</p>
+      </div>
+      <div class="card">
+        <h3>Players</h3>
+        <div class="player-list" id="player-list">
+          <p class="no-players">Waiting for players to join...</p>
+        </div>
+        <div class="admin-panel">
+          <button class="btn-reset" onclick="resetGame()">⚠️ RESTART GAME</button>
+        </div>
       </div>
     </div>
 
@@ -254,6 +270,19 @@
     });
   }
 
+  // Make these accessible to the global window object for inline HTML onclick handlers
+  window.kickPlayer = async function(playerId) {
+    if(confirm('Kick this player?')) {
+      await remove(ref(db, `game/players/${playerId}`));
+    }
+  };
+
+  window.resetGame = async function() {
+    if(confirm('Are you sure you want to completely restart the game? This removes all players.')) {
+      await set(ref(db, 'game'), null);
+    }
+  };
+
   function renderPlayers(players, currentTurn) {
     const list = document.getElementById('player-list');
     if (!players || Object.keys(players).length === 0) {
@@ -266,11 +295,15 @@
       const c = PLAYER_COLORS[i % PLAYER_COLORS.length];
       const row = document.createElement('div');
       row.className = 'player-row' + (isActive?' active':'');
+      // Added score display and Kick button
       row.innerHTML = `
         <div class="avatar" style="background:${c.bg};border:1.5px solid ${c.border};color:${c.text};">${(p.name||'?')[0].toUpperCase()}</div>
-        <span class="pname">${p.name||'Unknown'}</span>
-        <span class="ppos">Tile ${p.pos||1}</span>
+        <div style="flex: 1; display: flex; flex-direction: column;">
+          <span class="pname">${p.name||'Unknown'} <span style="color:#5dcaa5; font-size:11px;">(${p.score||0} pts)</span></span>
+          <span class="ppos">Tile ${p.pos||1}</span>
+        </div>
         <span class="ptag ${isActive?'active':'waiting'}">${isActive?'Rolling':'Waiting'}</span>
+        <button class="btn-kick" onclick="kickPlayer('${id}')">Kick</button>
       `;
       list.appendChild(row);
     });
@@ -299,10 +332,13 @@
       </div>`).join('');
   }
 
-  // QR Code
-  const playerUrl = 'https://klasyyi.github.io/cyberhax-game/player.html';
-  document.getElementById('qr-url').textContent = playerUrl;
-  document.getElementById('qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(playerUrl)}&bgcolor=08213d&color=3fa0ff&qzone=1`;
+  // --- DYNAMIC QR CODE LOGIC ---
+  // Automatically grabs the current domain and path
+  const basePath = window.location.href.replace('index.html', '').replace(/\/$/, '');
+  const dynamicPlayerUrl = basePath + '/player.html';
+  
+  document.getElementById('qr-url').textContent = dynamicPlayerUrl;
+  document.getElementById('qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(dynamicPlayerUrl)}&bgcolor=08213d&color=3fa0ff&qzone=1`;
 
   // Listen to game state
   onValue(ref(db, 'game'), snap => {
