@@ -274,7 +274,23 @@ let adminUnlocked=false, logs=[], lastLog='', confettiAnim=null;
 
 // ── Questions ──
 const SHEET_CSV_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vRZK7rtaAQRYiPtM15GOs4-Iebk_0ii30YfSvZfbxbbLqCARRK8bhlzK4rd3NpW-BxKk8QEaVqUdF4C/pub?gid=0&single=true&output=csv';
-
+const FALLBACK=[
+  {q:"What does 'phishing' refer to?",opts:["Attacking servers directly","Tricking users into revealing credentials","Encrypting files for ransom","Sniffing network traffic"],ans:1,cat:"Social Engineering"},
+  {q:"What port does HTTPS use by default?",opts:["80","21","443","8080"],ans:2,cat:"Networking"},
+  {q:"What is a zero-day vulnerability?",opts:["A bug fixed within 24 hours","An exploit unknown to the vendor","A daily scheduled scan","A firewall misconfiguration"],ans:1,cat:"Vulnerabilities"},
+  {q:"Which algorithm is asymmetric encryption?",opts:["AES","DES","RSA","3DES"],ans:2,cat:"Cryptography"},
+  {q:"What does SQL injection exploit?",opts:["Weak passwords","Unvalidated user input in queries","Open ports","Outdated antivirus"],ans:1,cat:"Web Security"},
+  {q:"What is a VPN primarily used for?",opts:["Speed up internet","Encrypt and tunnel traffic","Block ads","Manage passwords"],ans:1,cat:"Networking"},
+  {q:"What does CIA stand for in cybersecurity?",opts:["Control, Integrity, Access","Confidentiality, Integrity, Availability","Cipher, Identity, Authentication","Central Intelligence Agency"],ans:1,cat:"Fundamentals"},
+  {q:"What is a brute-force attack?",opts:["Physically breaking hardware","Trying all possible passwords","Exploiting software bugs","Intercepting packets"],ans:1,cat:"Attacks"},
+  {q:"What is two-factor authentication (2FA)?",opts:["Two passwords","Password + a second verification factor","Biometric only","Encrypted login"],ans:1,cat:"Authentication"},
+  {q:"What does a firewall do?",opts:["Encrypts data","Monitors and filters network traffic","Scans for viruses","Generates passwords"],ans:1,cat:"Defense"},
+  {q:"What is ransomware?",opts:["Spyware that steals data","Malware that encrypts files for payment","A phishing email","A DoS tool"],ans:1,cat:"Malware"},
+  {q:"What is steganography?",opts:["Encrypting messages","Hiding data inside other files","Breaking ciphers","Password cracking"],ans:1,cat:"Cryptography"},
+  {q:"Which protocol is used to securely log into remote servers?",opts:["FTP","Telnet","SSH","HTTP"],ans:2,cat:"Protocols"},
+  {q:"What does 'OSINT' stand for?",opts:["Open Source Intelligence","Operational Security Interface","Online Security Integration","Object Signal Intelligence"],ans:0,cat:"Reconnaissance"},
+];
+  
 function parseCSVRow(row){
   const cols=[]; let cur='', inQ=false;
   for(let i=0;i<row.length;i++){
