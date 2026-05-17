@@ -274,11 +274,25 @@ const FALLBACK=[
   {q:"Which protocol is used to securely log into remote servers?",opts:["FTP","Telnet","SSH","HTTP"],ans:2,cat:"Protocols"},
   {q:"What does 'OSINT' stand for?",opts:["Open Source Intelligence","Operational Security Interface","Online Security Integration","Object Signal Intelligence"],ans:0,cat:"Reconnaissance"},
 ];
+function parseCSVRow(row){
+  const cols=[]; let cur='', inQ=false;
+  for(let i=0;i<row.length;i++){
+    const ch=row[i];
+    if(ch==='"'){ inQ=!inQ; }
+    else if(ch===','&&!inQ){ cols.push(cur.trim()); cur=''; }
+    else cur+=ch;
+  }
+  cols.push(cur.trim());
+  return cols;
+}
 let QUESTIONS=FALLBACK;
-fetch(SHEET_CSV_URL).then(r=>r.json?r.text():r.text()).then(text=>{
+fetch(SHEET_CSV_URL).then(r=>r.text()).then(text=>{
   const rows=text.trim().split('\n').slice(1);
   const ansMap={A:0,B:1,C:2,D:3};
-  const parsed=rows.map(row=>{const cols=row.split(',').map(c=>c.trim().replace(/^"|"$/g,''));return{q:cols[0],opts:[cols[1],cols[2],cols[3],cols[4]],ans:ansMap[cols[5]?.toUpperCase()]||0,cat:cols[6]||'General'};}).filter(q=>q.q);
+  const parsed=rows.map(row=>{
+    const cols=parseCSVRow(row);
+    return{q:cols[0],opts:[cols[1],cols[2],cols[3],cols[4]],ans:ansMap[cols[5]?.trim().toUpperCase()]||0,cat:cols[6]||'General'};
+  }).filter(q=>q.q&&q.q.length>2);
   if(parsed.length>0) QUESTIONS=parsed;
 }).catch(()=>{});
 
