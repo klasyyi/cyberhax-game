@@ -83,7 +83,7 @@ button.bonus-btn:hover{background:#2a2a10;}
 <!-- JOIN -->
 <div class="card" id="join-screen">
   <h2>Join Game</h2>
-  <input type="password" id="session-pw" placeholder="Session password..." maxlength="20"/>
+  <input type="password" id="session-pw" placeholder="Session code (from host)..." maxlength="10"/>
   <input type="text" id="name-input" placeholder="Your hacker name..." maxlength="16"/>
   <button onclick="joinGame()">JOIN MATCH</button>
   <p id="msg"></p>
@@ -190,7 +190,6 @@ const PLAYER_COLORS = [
   {bg:'#1a3a1a',border:'#1d9e75',text:'#5dcaa5'},
   {bg:'#3a1a2e',border:'#d4537e',text:'#ed93b1'},
 ];
-const SESSION_PASSWORD = 'cyberhax'; // same as admin password
 const POWERUP_TYPES = [2, 3]; // 2x or 3x
 
 let myId=null, myName='', myPowerup=null, pendingPowerup=null;
@@ -227,10 +226,16 @@ function playSound(type){
 }
 
 window.joinGame=async function(){
-  const pw=document.getElementById('session-pw').value;
+  const pw=document.getElementById('session-pw').value.trim().toUpperCase();
   const name=document.getElementById('name-input').value.trim();
-  if(pw!==SESSION_PASSWORD){document.getElementById('msg').textContent='Wrong session password!';return;}
+  if(!pw){document.getElementById('msg').textContent='Enter the session code!';return;}
   if(!name){document.getElementById('msg').textContent='Enter your name!';return;}
+
+  // Validate session code against Firebase
+  const codeSnap=await get(ref(db,'game/sessionCode'));
+  const validCode=(codeSnap.val()||'').toUpperCase();
+  if(!validCode){document.getElementById('msg').textContent='No session started yet. Ask the host!';return;}
+  if(pw!==validCode){document.getElementById('msg').textContent='Wrong session code!';return;}
 
   const snap=await get(ref(db,'game/players'));
   const players=snap.val()||{};
