@@ -126,7 +126,16 @@ h1{text-align:center;font-size:26px;font-weight:700;letter-spacing:4px;color:#7e
 .win-close{padding:10px 28px;background:#0c3d20;border:1.5px solid #1d9e75;color:#5dcaa5;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700;font-family:'Segoe UI',sans-serif;letter-spacing:1px;}
 .win-close:hover{background:#1a5a30;}
 
-/* CONFETTI */
+/* DICE ROLL OVERLAY */
+.dice-overlay{display:none;position:fixed;inset:0;background:#000000bb;z-index:150;align-items:center;justify-content:center;flex-direction:column;gap:10px;}
+.dice-overlay.show{display:flex;}
+.dice-overlay .dice-face{font-size:100px;animation:diceBounce 0.15s infinite alternate;}
+@keyframes diceBounce{0%{transform:scale(1) rotate(-5deg);}100%{transform:scale(1.1) rotate(5deg);}}
+.dice-overlay .dice-result{font-size:28px;font-weight:700;color:#f5c23d;letter-spacing:2px;}
+.dice-overlay .dice-who{font-size:14px;color:#7ec8ff;}
+/* TILE FLASH on movement */
+.tile.flash{animation:tileFlash 0.4s ease-out!important;}
+@keyframes tileFlash{0%{background:#f5c23d33;box-shadow:0 0 20px #f5c23daa;}100%{}}
 .confetti-piece{position:fixed;width:10px;height:10px;border-radius:2px;pointer-events:none;z-index:499;animation:confettiFall linear forwards;}
 @keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1;}100%{transform:translateY(110vh) rotate(720deg);opacity:0;}}
 
@@ -207,6 +216,13 @@ h1{text-align:center;font-size:26px;font-weight:700;letter-spacing:4px;color:#7e
   </div>
 </div>
 
+<!-- Dice overlay -->
+<div class="dice-overlay" id="dice-overlay">
+  <div class="dice-who" id="dice-who"></div>
+  <div class="dice-face" id="dice-overlay-face">🎲</div>
+  <div class="dice-result" id="dice-overlay-result"></div>
+</div>
+
 <!-- Question overlay -->
 <div class="q-overlay" id="q-overlay">
   <div class="q-box" id="q-box">
@@ -258,22 +274,7 @@ let adminUnlocked=false, logs=[], lastLog='', confettiAnim=null;
 
 // ── Questions ──
 const SHEET_CSV_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vRZK7rtaAQRYiPtM15GOs4-Iebk_0ii30YfSvZfbxbbLqCARRK8bhlzK4rd3NpW-BxKk8QEaVqUdF4C/pub?gid=0&single=true&output=csv';
-const FALLBACK=[
-  {q:"What does 'phishing' refer to?",opts:["Attacking servers directly","Tricking users into revealing credentials","Encrypting files for ransom","Sniffing network traffic"],ans:1,cat:"Social Engineering"},
-  {q:"What port does HTTPS use by default?",opts:["80","21","443","8080"],ans:2,cat:"Networking"},
-  {q:"What is a zero-day vulnerability?",opts:["A bug fixed within 24 hours","An exploit unknown to the vendor","A daily scheduled scan","A firewall misconfiguration"],ans:1,cat:"Vulnerabilities"},
-  {q:"Which algorithm is asymmetric encryption?",opts:["AES","DES","RSA","3DES"],ans:2,cat:"Cryptography"},
-  {q:"What does SQL injection exploit?",opts:["Weak passwords","Unvalidated user input in queries","Open ports","Outdated antivirus"],ans:1,cat:"Web Security"},
-  {q:"What is a VPN primarily used for?",opts:["Speed up internet","Encrypt and tunnel traffic","Block ads","Manage passwords"],ans:1,cat:"Networking"},
-  {q:"What does CIA stand for in cybersecurity?",opts:["Control, Integrity, Access","Confidentiality, Integrity, Availability","Cipher, Identity, Authentication","Central Intelligence Agency"],ans:1,cat:"Fundamentals"},
-  {q:"What is a brute-force attack?",opts:["Physically breaking hardware","Trying all possible passwords","Exploiting software bugs","Intercepting packets"],ans:1,cat:"Attacks"},
-  {q:"What is two-factor authentication (2FA)?",opts:["Two passwords","Password + a second verification factor","Biometric only","Encrypted login"],ans:1,cat:"Authentication"},
-  {q:"What does a firewall do?",opts:["Encrypts data","Monitors and filters network traffic","Scans for viruses","Generates passwords"],ans:1,cat:"Defense"},
-  {q:"What is ransomware?",opts:["Spyware that steals data","Malware that encrypts files for payment","A phishing email","A DoS tool"],ans:1,cat:"Malware"},
-  {q:"What is steganography?",opts:["Encrypting messages","Hiding data inside other files","Breaking ciphers","Password cracking"],ans:1,cat:"Cryptography"},
-  {q:"Which protocol is used to securely log into remote servers?",opts:["FTP","Telnet","SSH","HTTP"],ans:2,cat:"Protocols"},
-  {q:"What does 'OSINT' stand for?",opts:["Open Source Intelligence","Operational Security Interface","Online Security Integration","Object Signal Intelligence"],ans:0,cat:"Reconnaissance"},
-];
+
 function parseCSVRow(row){
   const cols=[]; let cur='', inQ=false;
   for(let i=0;i<row.length;i++){
@@ -349,6 +350,7 @@ function renderBoard(players){
     else if(BONUS_TILES.has(n)) cls+=' bonus';
     else if(TELEPORT_TILES.has(n)) cls+=' teleport';
     div.className=cls;
+    div.id='tile-'+n;
     const num=document.createElement('div'); num.className='tnum'; num.textContent=n;
     const icon=document.createElement('div'); icon.className='ticon';
     if(n===1) icon.textContent='🚩'; else if(n===50) icon.textContent='🏆';
@@ -378,7 +380,7 @@ function renderPlayers(players,currentTurn){
       <span class="ptag ${isActive?'active':'waiting'}">${isActive?'Rolling':'Wait'}</span>
     `;
     list.appendChild(row);
-    if(adminUnlocked){const kb=document.createElement('button');kb.className='kick-btn-full';kb.textContent=`Remove: ${p.avatarEmoji||''} ${p.name}`;kb.onclick=()=>kickPlayer(id,p.name,players,currentTurn);kickList.appendChild(kb);}
+    if(adminUnlocked){const kb=document.createElement('button');kb.className='kick-btn-full';kb.textContent=`Remove: ${p.avatarEmoji||''} ${p.name}`;kb.onclick=()=>kickPlayer(id);kickList.appendChild(kb);}
   });
 }
 
@@ -441,10 +443,16 @@ window.adminRestart=async function(){
   document.getElementById('start-btn').disabled=false;
 };
 
-window.kickPlayer=async function(id,name,players,currentTurn){
-  if(!confirm('Remove '+name+'?')) return;
+window.kickPlayer=async function(id){
+  const snap=await get(ref(db,'game')); const game=snap.val()||{};
+  const players=game.players||{}; const p=players[id];
+  if(!p){alert('Player not found.');return;}
+  if(!confirm('Remove '+p.name+'?')) return;
+  const currentTurn=game.currentTurn;
   await remove(ref(db,'game/players/'+id));
-  await update(ref(db,'game'),{lastLog:'🚫 '+name+' removed',lastLogType:'bad'});
+  // Write kicked flag so player phone detects it
+  await set(ref(db,'game/kicked/'+id),true);
+  await update(ref(db,'game'),{lastLog:'🚫 '+p.name+' removed',lastLogType:'bad'});
   if(currentTurn===id){
     const remaining=Object.keys(players).filter(k=>k!==id).sort((a,b)=>(players[a].joined||0)-(players[b].joined||0));
     if(remaining.length>0) await update(ref(db,'game'),{currentTurn:remaining[0],question:null,lastLog:`↪ ${players[remaining[0]]?.name}'s turn`,lastLogType:''});
@@ -459,6 +467,38 @@ document.getElementById('qr-img').src=`https://api.qrserver.com/v1/create-qr-cod
 
 // ── Listen session code ──
 onValue(ref(db,'game/sessionCode'),snap=>{ document.getElementById('session-code-display').textContent=snap.val()||'—'; });
+
+// ── Listen dice roll ──
+const DICE_FACES=['⚀','⚁','⚂','⚃','⚄','⚅'];
+let lastDiceT=0, lastPos={};
+onValue(ref(db,'game/diceRoll'),snap=>{
+  const d=snap.val();
+  if(!d||d.t===lastDiceT) return;
+  lastDiceT=d.t;
+  // Animate dice on host screen
+  const overlay=document.getElementById('dice-overlay');
+  const faceEl=document.getElementById('dice-overlay-face');
+  const resultEl=document.getElementById('dice-overlay-result');
+  const whoEl=document.getElementById('dice-who');
+  whoEl.textContent=`${d.avatarEmoji||''} ${d.name} is rolling...`;
+  resultEl.textContent='';
+  overlay.classList.add('show');
+  let i=0;
+  const iv=setInterval(()=>{
+    faceEl.textContent=DICE_FACES[Math.floor(Math.random()*6)];
+    if(++i>12){
+      clearInterval(iv);
+      faceEl.textContent=DICE_FACES[d.roll-1];
+      resultEl.textContent=`Rolled ${d.roll} → Tile ${d.newPos}`;
+      // Flash the destination tile
+      setTimeout(()=>{
+        overlay.classList.remove('show');
+        const tileEl=document.getElementById('tile-'+d.newPos);
+        if(tileEl){tileEl.classList.add('flash');setTimeout(()=>tileEl.classList.remove('flash'),500);}
+      },900);
+    }
+  },80);
+});
 
 // ── Listen reactions ──
 let lastReactionT=0;
