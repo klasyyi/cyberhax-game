@@ -274,6 +274,8 @@ let adminUnlocked=false, logs=[], lastLog='', confettiAnim=null;
 
 // ── Questions ──
 const SHEET_CSV_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vRZK7rtaAQRYiPtM15GOs4-Iebk_0ii30YfSvZfbxbbLqCARRK8bhlzK4rd3NpW-BxKk8QEaVqUdF4C/pub?gid=0&single=true&output=csv';
+const FALLBACK=[
+];
   
 function parseCSVRow(row){
   const cols=[]; let cur='', inQ=false;
