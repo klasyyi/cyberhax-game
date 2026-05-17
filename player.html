@@ -5,141 +5,120 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <title>CYBERHAX — Player</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #050d1a; font-family: 'Segoe UI', sans-serif; color: #c5dff8; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; }
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#050d1a;font-family:'Segoe UI',sans-serif;color:#c5dff8;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 16px;}
+h1{font-size:22px;font-weight:700;letter-spacing:3px;color:#7ec8ff;margin-bottom:3px;}
+.sub{font-size:11px;color:#3fa0ff;letter-spacing:1px;margin-bottom:20px;}
+.card{width:100%;max-width:400px;background:#0a1628;border:1.5px solid #1a3050;border-radius:14px;padding:16px 18px;margin-bottom:12px;}
+.card h2{font-size:13px;font-weight:600;color:#3fa0ff;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;}
+input[type=text],input[type=password]{width:100%;padding:12px 14px;background:#0d1f3a;border:1px solid #1a6fdb55;border-radius:8px;color:#c5dff8;font-size:16px;font-family:'Segoe UI',sans-serif;outline:none;margin-bottom:10px;}
+input[type=text]:focus,input[type=password]:focus{border-color:#1a6fdb;}
+input::placeholder{color:#3a6a9a;}
+button{width:100%;padding:13px;border-radius:10px;border:1.5px solid #1a6fdb;background:#0d2040;color:#7ec8ff;font-size:15px;font-weight:600;cursor:pointer;font-family:'Segoe UI',sans-serif;letter-spacing:1px;transition:background 0.15s;}
+button:hover{background:#1a3a6a;}
+button:disabled{opacity:0.4;cursor:not-allowed;}
+button.danger{border-color:#a32d2d;color:#f09595;background:#1a0808;}
+button.danger:hover{background:#280a0a;}
+button.bonus-btn{border-color:#d4a017;color:#f5c23d;background:#1a1a08;}
+button.bonus-btn:hover{background:#2a2a10;}
 
-  h1 { font-size: 22px; font-weight: 700; letter-spacing: 3px; color: #7ec8ff; margin-bottom: 4px; }
-  .sub { font-size: 12px; color: #3fa0ff; letter-spacing: 1px; margin-bottom: 24px; }
+.status-pill{display:inline-block;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600;letter-spacing:1px;margin-bottom:12px;}
+.status-pill.waiting{background:#1a3a6a;color:#7ec8ff;}
+.status-pill.your-turn{background:#0c3d20;color:#5dcaa5;animation:glow 1.5s infinite;}
+.status-pill.other-turn{background:#1a1a2a;color:#7a8aaa;}
+.status-pill.lobby{background:#1a1a08;color:#f5c23d;}
+@keyframes glow{0%,100%{box-shadow:0 0 6px #1d9e7566;}50%{box-shadow:0 0 14px #1d9e75aa;}}
 
-  .card {
-    width: 100%; max-width: 400px;
-    background: #0a1628;
-    border: 1.5px solid #1a3050;
-    border-radius: 16px;
-    padding: 20px;
-    margin-bottom: 14px;
-  }
-  .card h2 { font-size: 14px; font-weight: 600; color: #3fa0ff; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 14px; }
+.stats-row{display:flex;gap:10px;margin-bottom:12px;}
+.stat-box{flex:1;background:#0d1f3a;border:1px solid #1a3050;border-radius:8px;padding:8px;text-align:center;}
+.stat-val{font-size:24px;font-weight:700;color:#7ec8ff;line-height:1;}
+.stat-val.gold{color:#f5c23d;}
+.stat-label{font-size:10px;color:#3a6a9a;margin-top:3px;}
 
-  input[type=text] {
-    width: 100%; padding: 12px 14px;
-    background: #0d1f3a; border: 1px solid #1a6fdb55;
-    border-radius: 8px; color: #c5dff8; font-size: 16px;
-    font-family: 'Segoe UI', sans-serif;
-    outline: none; margin-bottom: 12px;
-  }
-  input[type=text]:focus { border-color: #1a6fdb; }
-  input[type=text]::placeholder { color: #3a6a9a; }
+.dice-face{font-size:52px;text-align:center;margin:8px 0;line-height:1;min-height:60px;}
 
-  button {
-    width: 100%; padding: 14px;
-    border-radius: 10px; border: 1.5px solid #1a6fdb;
-    background: #0d2040; color: #7ec8ff;
-    font-size: 16px; font-weight: 600;
-    cursor: pointer; font-family: 'Segoe UI', sans-serif;
-    letter-spacing: 1px; transition: background 0.15s;
-  }
-  button:hover { background: #1a3a6a; }
-  button:disabled { opacity: 0.4; cursor: not-allowed; }
-  button.danger { border-color: #a32d2d; color: #f09595; background: #1a0808; }
+/* Powerup card */
+.powerup-card{background:#1a1a08;border:1.5px solid #d4a017;border-radius:12px;padding:14px;text-align:center;margin-bottom:12px;width:100%;max-width:400px;}
+.powerup-card h2{color:#f5c23d;font-size:13px;margin-bottom:8px;}
+.powerup-type{font-size:28px;font-weight:700;color:#f5c23d;margin-bottom:4px;}
+.powerup-desc{font-size:12px;color:#c5a050;margin-bottom:12px;}
+.pw-btns{display:flex;gap:8px;}
+.pw-btns button{padding:10px;font-size:13px;}
 
-  .status-pill {
-    display: inline-block;
-    padding: 4px 14px; border-radius: 20px;
-    font-size: 12px; font-weight: 600; letter-spacing: 1px;
-    margin-bottom: 14px;
-  }
-  .status-pill.waiting { background: #1a3a6a; color: #7ec8ff; }
-  .status-pill.your-turn { background: #0c3d20; color: #5dcaa5; animation: glow-green 1.5s infinite; }
-  .status-pill.answering { background: #2a1a08; color: #f5c23d; }
-  .status-pill.other-turn { background: #1a1a2a; color: #7a8aaa; }
-  @keyframes glow-green { 0%,100%{box-shadow:0 0 6px #1d9e7566} 50%{box-shadow:0 0 14px #1d9e75aa} }
+.q-cat{font-size:11px;color:#3fa0ff;letter-spacing:2px;text-transform:uppercase;margin-bottom:7px;}
+.q-text{font-size:15px;color:#c5dff8;line-height:1.5;margin-bottom:14px;font-weight:500;}
+.q-opts{display:flex;flex-direction:column;gap:7px;}
+.q-opt{display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:8px;border:1px solid #1a6fdb55;background:#0d2040;color:#c5dff8;font-size:14px;cursor:pointer;font-family:'Segoe UI',sans-serif;text-align:left;width:100%;transition:border-color 0.15s,background 0.15s;}
+.q-opt .letter{font-size:11px;color:#3fa0ff;font-weight:700;flex-shrink:0;}
+.q-opt:hover:not(:disabled){border-color:#3fa0ff;background:#0f2545;}
+.q-opt.correct{border-color:#1d9e75;background:#0c3d20;color:#5dcaa5;}
+.q-opt.wrong{border-color:#a32d2d;background:#280a0a;color:#f09595;}
+.q-opt:disabled{cursor:not-allowed;}
+.active-powerup-badge{display:inline-block;padding:3px 10px;border-radius:12px;background:#1a1a08;border:1px solid #d4a017;color:#f5c23d;font-size:11px;font-weight:700;margin-bottom:10px;}
 
-  .tile-display { text-align: center; margin: 10px 0; }
-  .tile-num { font-size: 48px; font-weight: 700; color: #7ec8ff; line-height: 1; }
-  .tile-label { font-size: 12px; color: #3a6a9a; margin-top: 4px; }
+.result-box{text-align:center;padding:11px;border-radius:9px;font-size:14px;font-weight:600;margin-top:9px;}
+.result-box.correct{background:#0c3d20;color:#5dcaa5;border:1px solid #1d9e75;}
+.result-box.wrong{background:#280a0a;color:#f09595;border:1px solid #a32d2d;}
 
-  /* Score display */
-  .score-display { display: inline-block; margin-left: 12px; font-size: 20px; font-weight: 700; color: #f5c23d; }
-  .score-label { font-size: 12px; color: #3a6a9a; margin-top: 2px; }
+.p-list{display:flex;flex-direction:column;gap:5px;}
+.p-row{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:7px;background:#0d1f3a;border:1px solid #1a3050;}
+.p-row.me{border-color:#1a6fdb;background:#0d2040;}
+.p-avatar{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;}
+.p-name{font-size:12px;flex:1;}
+.p-tile{font-size:11px;color:#3a6a9a;}
+.p-score{font-size:12px;font-weight:700;color:#f5c23d;}
 
-  .dice-face { font-size: 56px; text-align: center; margin: 10px 0; line-height: 1; min-height: 64px; }
-
-  .q-cat { font-size: 11px; color: #3fa0ff; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
-  .q-text { font-size: 16px; color: #c5dff8; line-height: 1.5; margin-bottom: 16px; font-weight: 500; }
-  .q-opts { display: flex; flex-direction: column; gap: 8px; }
-  .q-opt {
-    display: flex; align-items: center; gap: 12px;
-    padding: 12px 14px; border-radius: 8px;
-    border: 1px solid #1a6fdb55; background: #0d2040;
-    color: #c5dff8; font-size: 14px;
-    cursor: pointer; transition: border-color 0.15s, background 0.15s;
-    font-family: 'Segoe UI', sans-serif; text-align: left;
-    width: 100%;
-  }
-  .q-opt .letter { font-size: 11px; color: #3fa0ff; font-weight: 700; flex-shrink: 0; }
-  .q-opt:hover:not(:disabled) { border-color: #3fa0ff; background: #0f2545; }
-  .q-opt.correct { border-color: #1d9e75; background: #0c3d20; color: #5dcaa5; }
-  .q-opt.wrong { border-color: #a32d2d; background: #280a0a; color: #f09595; }
-  .q-opt:disabled { cursor: not-allowed; }
-
-  .result-box { text-align: center; padding: 12px; border-radius: 10px; font-size: 15px; font-weight: 600; margin-top: 10px; }
-  .result-box.correct { background: #0c3d20; color: #5dcaa5; border: 1px solid #1d9e75; }
-  .result-box.wrong { background: #280a0a; color: #f09595; border: 1px solid #a32d2d; }
-
-  .player-list { display: flex; flex-direction: column; gap: 6px; }
-  .p-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; background: #0d1f3a; border: 1px solid #1a3050; }
-  .p-row.me { border-color: #1a6fdb; background: #0d2040; }
-  .p-avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
-  .p-name { font-size: 13px; flex: 1; }
-  .p-tile { font-size: 11px; color: #3a6a9a; }
-  /* FIXED: score shown in player list */
-  .p-score { font-size: 12px; font-weight: 700; color: #f5c23d; }
-
-  .hidden { display: none; }
-
-  .win-box { text-align: center; }
-  .win-box .trophy { font-size: 56px; margin-bottom: 8px; }
-  .win-box h2 { font-size: 20px; color: #7ec8ff; font-weight: 700; margin-bottom: 6px; }
-  .win-box p { font-size: 13px; color: #3fa0ff; }
-
-  #msg { font-size: 13px; color: #f09595; text-align: center; margin-top: 8px; min-height: 20px; }
+.hidden{display:none;}
+.win-box{text-align:center;}
+.win-box .trophy{font-size:52px;margin-bottom:8px;}
+.win-box h2{font-size:19px;color:#7ec8ff;font-weight:700;margin-bottom:5px;}
+.win-box p{font-size:13px;color:#3fa0ff;margin-bottom:14px;}
+#msg{font-size:12px;color:#f09595;text-align:center;margin-top:7px;min-height:18px;}
 </style>
 </head>
 <body>
-
 <h1>&#x1F4BB; CYBERHAX</h1>
 <p class="sub">PLAYER VIEW</p>
 
-<!-- JOIN SCREEN -->
+<!-- JOIN -->
 <div class="card" id="join-screen">
   <h2>Join Game</h2>
-  <input type="text" id="name-input" placeholder="Enter your hacker name..." maxlength="16" />
+  <input type="password" id="session-pw" placeholder="Session password..." maxlength="20"/>
+  <input type="text" id="name-input" placeholder="Your hacker name..." maxlength="16"/>
   <button onclick="joinGame()">JOIN MATCH</button>
   <p id="msg"></p>
 </div>
 
-<!-- GAME SCREEN -->
+<!-- LOBBY -->
+<div class="card hidden" id="lobby-screen" style="text-align:center;">
+  <h2>&#x23F3; Waiting for host to start...</h2>
+  <p style="color:#3a6a9a;font-size:13px;margin-top:8px;" id="lobby-msg">You're in the lobby</p>
+  <div class="p-list" style="margin-top:14px;" id="lobby-list"></div>
+</div>
+
+<!-- GAME -->
 <div id="game-screen" class="hidden">
 
   <div class="card" style="text-align:center;">
     <div class="status-pill waiting" id="status-pill">Waiting...</div>
-    <div class="tile-display">
-      <div style="display:inline-flex;gap:24px;align-items:flex-end;">
-        <div>
-          <div class="tile-num" id="my-tile">1</div>
-          <div class="tile-label">current tile</div>
-        </div>
-        <div>
-          <div class="score-display" id="my-score">0</div>
-          <div class="score-label">pts</div>
-        </div>
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-val" id="my-tile">1</div>
+        <div class="stat-label">tile</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val gold" id="my-score">0</div>
+        <div class="stat-label">points</div>
+      </div>
+      <div class="stat-box" id="powerup-stat" style="border-color:#d4a01755;">
+        <div class="stat-val" id="my-powerup" style="font-size:18px;">—</div>
+        <div class="stat-label" style="color:#d4a017;">powerup</div>
       </div>
     </div>
   </div>
 
   <!-- Roll card -->
-  <div class="card" id="roll-card" style="text-align:center;">
+  <div class="card hidden" id="roll-card" style="text-align:center;">
     <h2>Your Turn!</h2>
     <div class="dice-face" id="dice-face">🎲</div>
     <button id="roll-btn" onclick="rollDice()">ROLL DICE</button>
@@ -148,311 +127,483 @@
   <!-- Waiting card -->
   <div class="card hidden" id="wait-card" style="text-align:center;">
     <h2>Waiting...</h2>
-    <p style="color:#3a6a9a;font-size:14px;margin-top:8px;" id="wait-msg">Another player is taking their turn</p>
+    <p style="color:#3a6a9a;font-size:13px;margin-top:6px;" id="wait-msg">Another player is taking their turn</p>
+  </div>
+
+  <!-- Powerup card — shown when landing on bonus tile -->
+  <div class="powerup-card hidden" id="powerup-card">
+    <h2>⭐ YOU GOT A POWERUP!</h2>
+    <div class="powerup-type" id="powerup-type">2x</div>
+    <div class="powerup-desc" id="powerup-desc">Double points on next correct answer</div>
+    <div class="pw-btns">
+      <button class="bonus-btn" onclick="activatePowerup()">⚡ USE NOW</button>
+      <button onclick="savePowerup()">💾 SAVE FOR LATER</button>
+    </div>
   </div>
 
   <!-- Question card -->
   <div class="card hidden" id="q-card">
     <h2>&#x1F535; Cybersec Challenge!</h2>
+    <div class="active-powerup-badge hidden" id="active-badge"></div>
     <div class="q-cat" id="q-cat-p"></div>
     <div class="q-text" id="q-text-p"></div>
     <div class="q-opts" id="q-opts-p"></div>
     <div class="result-box hidden" id="q-result"></div>
+    <div style="margin-top:10px;" id="use-powerup-area"></div>
   </div>
 
-  <!-- Players card — FIXED: score shown -->
+  <!-- Players -->
   <div class="card">
     <h2>Players</h2>
-    <div class="player-list" id="p-list"></div>
+    <div class="p-list" id="p-list"></div>
   </div>
 
   <div class="card">
     <button class="danger" onclick="leaveGame()">LEAVE GAME</button>
   </div>
-
 </div>
 
-<!-- WIN SCREEN -->
+<!-- WIN -->
 <div class="card hidden" id="win-screen">
   <div class="win-box">
     <div class="trophy">🏆</div>
-    <h2 id="win-msg">You win!</h2>
+    <h2 id="win-msg">Game Over!</h2>
     <p id="win-sub"></p>
-    <br/>
     <button onclick="location.reload()">PLAY AGAIN</button>
   </div>
 </div>
 
 <script src="firebase-config.js"></script>
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, set, get, onValue, update, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, onValue, update, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-  const CYBER_TILES = new Set([3,7,11,15,18,22,25,29,33,36,39,42,45,48]);
-  const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
-  const PLAYER_COLORS = [
-    {bg:'#1a3a5c',border:'#378add',text:'#85b7eb'},
-    {bg:'#3a1a0c',border:'#d85a30',text:'#f0997b'},
-    {bg:'#1a3a1a',border:'#1d9e75',text:'#5dcaa5'},
-    {bg:'#3a1a2e',border:'#d4537e',text:'#ed93b1'},
-  ];
+const CYBER_TILES = new Set([3,7,11,15,18,22,25,29,33,36,39,42,45,48]);
+const BONUS_TILES = new Set([6,14,21,35,44]);
+const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+const PLAYER_COLORS = [
+  {bg:'#1a3a5c',border:'#378add',text:'#85b7eb'},
+  {bg:'#3a1a0c',border:'#d85a30',text:'#f0997b'},
+  {bg:'#1a3a1a',border:'#1d9e75',text:'#5dcaa5'},
+  {bg:'#3a1a2e',border:'#d4537e',text:'#ed93b1'},
+];
+const SESSION_PASSWORD = 'cyberhax'; // same as admin password
+const POWERUP_TYPES = [2, 3]; // 2x or 3x
 
-  const QUESTIONS = [
-    {q:"What does 'phishing' refer to?", opts:["Attacking servers directly","Tricking users into revealing credentials","Encrypting files for ransom","Sniffing network traffic"], ans:1, cat:"Social Engineering"},
-    {q:"What port does HTTPS use by default?", opts:["80","21","443","8080"], ans:2, cat:"Networking"},
-    {q:"What is a zero-day vulnerability?", opts:["A bug fixed within 24 hours","An exploit unknown to the vendor","A daily scheduled scan","A firewall misconfiguration"], ans:1, cat:"Vulnerabilities"},
-    {q:"Which algorithm is asymmetric encryption?", opts:["AES","DES","RSA","3DES"], ans:2, cat:"Cryptography"},
-    {q:"What does SQL injection exploit?", opts:["Weak passwords","Unvalidated user input in queries","Open ports","Outdated antivirus"], ans:1, cat:"Web Security"},
-    {q:"What is a VPN primarily used for?", opts:["Speed up internet","Encrypt and tunnel traffic","Block ads","Manage passwords"], ans:1, cat:"Networking"},
-    {q:"What does CIA stand for in cybersecurity?", opts:["Control, Integrity, Access","Confidentiality, Integrity, Availability","Cipher, Identity, Authentication","Central Intelligence Agency"], ans:1, cat:"Fundamentals"},
-    {q:"What is a brute-force attack?", opts:["Physically breaking hardware","Trying all possible passwords","Exploiting software bugs","Intercepting packets"], ans:1, cat:"Attacks"},
-    {q:"What is two-factor authentication (2FA)?", opts:["Two passwords","Password + a second verification factor","Biometric only","Encrypted login"], ans:1, cat:"Authentication"},
-    {q:"What does a firewall do?", opts:["Encrypts data","Monitors and filters network traffic","Scans for viruses","Generates passwords"], ans:1, cat:"Defense"},
-    {q:"What is ransomware?", opts:["Spyware that steals data","Malware that encrypts files for payment","A phishing email","A DoS tool"], ans:1, cat:"Malware"},
-    {q:"What is steganography?", opts:["Encrypting messages","Hiding data inside other files","Breaking ciphers","Password cracking"], ans:1, cat:"Cryptography"},
-    {q:"Which protocol is used to securely log into remote servers?", opts:["FTP","Telnet","SSH","HTTP"], ans:2, cat:"Protocols"},
-    {q:"What does 'OSINT' stand for?", opts:["Open Source Intelligence","Operational Security Interface","Online Security Integration","Object Signal Intelligence"], ans:0, cat:"Reconnaissance"},
-  ];
+let myId=null, myName='', myPowerup=null, pendingPowerup=null;
 
-  let myId = null;
-  let myName = '';
-
-  window.joinGame = async function() {
-    const input = document.getElementById('name-input');
-    const name = input.value.trim();
-    if (!name) { document.getElementById('msg').textContent = 'Enter a name first!'; return; }
-
-    const snap = await get(ref(db, 'game/players'));
-    const players = snap.val() || {};
-    const count = Object.keys(players).length;
-    if (count >= 4) { document.getElementById('msg').textContent = 'Game full (max 4 players)!'; return; }
-
-    myId = 'p_' + Date.now();
-    myName = name;
-
-    const myPlayerRef = ref(db, `game/players/${myId}`);
-    await set(myPlayerRef, { name, pos: 1, score: 0, joined: Date.now() });
-
-    // FIXED: properly wire onDisconnect so Firebase auto-removes player on tab close
-    onDisconnect(myPlayerRef).remove();
-
-    if (count === 0) {
-      await update(ref(db, 'game'), { status: 'waiting', currentTurn: myId, lastLog: `${name} created the game`, lastLogType: 'good' });
-    } else {
-      await update(ref(db, 'game'), { lastLog: `${name} joined the game`, lastLogType: '' });
+// ── Sounds ──
+function playSound(type){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const g=ctx.createGain(); g.connect(ctx.destination);
+    if(type==='dice'){
+      const o=ctx.createOscillator(); o.connect(g);
+      o.frequency.setValueAtTime(220,ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(440,ctx.currentTime+0.15);
+      g.gain.setValueAtTime(0.3,ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.2);
+      o.start(); o.stop(ctx.currentTime+0.2);
+    } else if(type==='correct'){
+      [523,659,784].forEach((f,i)=>{const o=ctx.createOscillator();o.connect(g);o.frequency.value=f;o.start(ctx.currentTime+i*0.12);o.stop(ctx.currentTime+i*0.12+0.15);});
+      g.gain.setValueAtTime(0.3,ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.5);
+    } else if(type==='wrong'){
+      const o=ctx.createOscillator(); o.connect(g);
+      o.frequency.setValueAtTime(300,ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(150,ctx.currentTime+0.3);
+      g.gain.setValueAtTime(0.3,ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.3);
+      o.start(); o.stop(ctx.currentTime+0.3);
+    } else if(type==='bonus'){
+      [784,988,1047,1319].forEach((f,i)=>{const o=ctx.createOscillator();o.connect(g);o.frequency.value=f;o.start(ctx.currentTime+i*0.08);o.stop(ctx.currentTime+i*0.08+0.12);});
+      g.gain.setValueAtTime(0.3,ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.5);
     }
+  }catch(e){}
+}
 
-    document.getElementById('join-screen').classList.add('hidden');
-    document.getElementById('game-screen').classList.remove('hidden');
-    listenGame();
-  };
+window.joinGame=async function(){
+  const pw=document.getElementById('session-pw').value;
+  const name=document.getElementById('name-input').value.trim();
+  if(pw!==SESSION_PASSWORD){document.getElementById('msg').textContent='Wrong session password!';return;}
+  if(!name){document.getElementById('msg').textContent='Enter your name!';return;}
 
-  function listenGame() {
-    onValue(ref(db, 'game'), snap => {
-      const game = snap.val();
-      if (!game) return;
-      const players = game.players || {};
-      const currentTurn = game.currentTurn;
-      const status = game.status;
-      const qState = game.question;
-      const isMyTurn = currentTurn === myId;
+  const snap=await get(ref(db,'game/players'));
+  const players=snap.val()||{};
+  const count=Object.keys(players).length;
+  if(count>=4){document.getElementById('msg').textContent='Game full (max 4)!';return;}
 
-      const me = players[myId];
-      if (!me) return;
+  myId='p_'+Date.now();
+  myName=name;
 
-      document.getElementById('my-tile').textContent = me.pos || 1;
-      document.getElementById('my-score').textContent = me.score || 0;
+  const myRef=ref(db,`game/players/${myId}`);
+  await set(myRef,{name,pos:1,score:0,powerup:null,joined:Date.now(),heartbeat:Date.now()});
+  onDisconnect(myRef).remove();
 
-      // FIXED: score shown in player list, sorted by score
-      const pList = document.getElementById('p-list');
-      pList.innerHTML = '';
-      Object.entries(players)
-        .sort((a,b) => (b[1].score||0) - (a[1].score||0))
-        .forEach(([id,p],i) => {
-          const row = document.createElement('div');
-          row.className = 'p-row' + (id===myId?' me':'');
-          const c = PLAYER_COLORS[i % PLAYER_COLORS.length];
-          row.innerHTML = `
-            <div class="p-avatar" style="background:${c.bg};border:1.5px solid ${c.border};color:${c.text};">${(p.name||'?')[0].toUpperCase()}</div>
-            <span class="p-name">${p.name}${id===myId?' (you)':''}</span>
-            <span class="p-tile">T${p.pos||1}</span>
-            <span class="p-score">${p.score||0}pt</span>
-          `;
-          pList.appendChild(row);
-        });
-
-      // Win check
-      if (status === 'finished') {
-        const winner = Object.values(players).find(p=>p.pos>=50);
-        document.getElementById('game-screen').classList.add('hidden');
-        document.getElementById('win-screen').classList.remove('hidden');
-        if (winner && winner.name === myName) {
-          document.getElementById('win-msg').textContent = '🏆 You win!';
-          document.getElementById('win-sub').textContent = 'You conquered CYBERHAX!';
-        } else {
-          document.getElementById('win-msg').textContent = `${winner?.name||'Someone'} wins!`;
-          document.getElementById('win-sub').textContent = 'Better luck next time.';
-        }
-        return;
-      }
-
-      // Question state
-      if (qState && !qState.answered && qState.playerId === myId) {
-        showQuestionUI(qState.qIdx);
-        return;
-      } else {
-        document.getElementById('q-card').classList.add('hidden');
-      }
-
-      // Turn UI
-      const pill = document.getElementById('status-pill');
-      if (isMyTurn) {
-        pill.className = 'status-pill your-turn'; pill.textContent = 'YOUR TURN';
-        document.getElementById('roll-card').classList.remove('hidden');
-        document.getElementById('wait-card').classList.add('hidden');
-      } else {
-        const cp = players[currentTurn];
-        pill.className = 'status-pill other-turn'; pill.textContent = 'Waiting...';
-        document.getElementById('roll-card').classList.add('hidden');
-        document.getElementById('wait-card').classList.remove('hidden');
-        document.getElementById('wait-msg').textContent = cp ? `${cp.name} is taking their turn` : 'Waiting...';
-      }
-    });
+  const gameSnap=await get(ref(db,'game'));
+  const game=gameSnap.val()||{};
+  if(!game.status||game.status==='waiting'){
+    await update(ref(db,'game'),{status:'waiting',lastLog:`${name} joined the lobby`,lastLogType:''});
   }
 
-  function showQuestionUI(qIdx) {
-    const q = QUESTIONS[qIdx];
-    document.getElementById('roll-card').classList.add('hidden');
-    document.getElementById('wait-card').classList.add('hidden');
-    document.getElementById('q-card').classList.remove('hidden');
-    document.getElementById('q-result').classList.add('hidden');
-    document.getElementById('q-cat-p').textContent = '🔵 ' + q.cat;
-    document.getElementById('q-text-p').textContent = q.q;
-    const optsEl = document.getElementById('q-opts-p');
-    optsEl.innerHTML = '';
-    q.opts.forEach((o,i) => {
-      const btn = document.createElement('button');
-      btn.className = 'q-opt';
-      btn.innerHTML = `<span class="letter">${String.fromCharCode(65+i)}</span>${o}`;
-      btn.onclick = () => submitAnswer(i, q, btn, optsEl);
-      optsEl.appendChild(btn);
-    });
-  }
+  document.getElementById('join-screen').classList.add('hidden');
+  document.getElementById('lobby-screen').classList.remove('hidden');
 
-  async function submitAnswer(chosen, q, btn, optsEl) {
-    optsEl.querySelectorAll('.q-opt').forEach(b => b.disabled = true);
-    const correct = chosen === q.ans;
-    optsEl.querySelectorAll('.q-opt')[q.ans].classList.add('correct');
-    if (!correct) btn.classList.add('wrong');
+  // Heartbeat
+  setInterval(async()=>{
+    if(myId) await update(ref(db,`game/players/${myId}`),{heartbeat:Date.now()});
+  },5000);
 
-    const result = document.getElementById('q-result');
-    result.className = 'result-box ' + (correct?'correct':'wrong');
-    result.textContent = correct ? '✅ Correct! +1 Point! Roll again!' : '❌ Wrong! Your turn ends.';
-    result.classList.remove('hidden');
+  listenGame();
+};
 
-    if (correct) {
-      const meSnap = await get(ref(db, `game/players/${myId}`));
-      const currentScore = meSnap.val()?.score || 0;
-      await update(ref(db, `game/players/${myId}`), { score: currentScore + 1 });
-    }
+function listenGame(){
+  onValue(ref(db,'game'),snap=>{
+    const game=snap.val();
+    if(!game) return;
+    const players=game.players||{};
+    const currentTurn=game.currentTurn;
+    const status=game.status;
+    const qState=game.question;
+    const isMyTurn=currentTurn===myId;
+    const me=players[myId];
+    if(!me) return;
 
-    await update(ref(db, 'game'), {
-      'question/answered': true,
-      'question/correct': correct,
-      lastLog: correct ? `✅ ${myName} answered correctly and gained 1 pt! Rolling again!` : `❌ ${myName} got it wrong. Next player's turn.`,
-      lastLogType: correct ? 'good' : 'bad'
-    });
-
-    setTimeout(async () => {
-      if (correct) {
-        document.getElementById('q-card').classList.add('hidden');
-        document.getElementById('roll-card').classList.remove('hidden');
-        await update(ref(db,'game'), { question: null });
-      } else {
-        document.getElementById('q-card').classList.add('hidden');
-        await nextTurn();
-      }
-    }, 1800);
-  }
-
-  window.rollDice = async function() {
-    const btn = document.getElementById('roll-btn');
-    btn.disabled = true;
-
-    let i=0, face=0;
-    await new Promise(res => {
-      const iv = setInterval(()=>{
-        face = Math.floor(Math.random()*6);
-        document.getElementById('dice-face').textContent = DICE_FACES[face];
-        if(++i>10){ clearInterval(iv); res(); }
-      }, 60);
-    });
-
-    const roll = face+1;
-    const snap = await get(ref(db, `game/players/${myId}`));
-    const me = snap.val();
-    const newPos = Math.min((me.pos||1)+roll, 50);
-
-    await update(ref(db, `game/players/${myId}`), { pos: newPos });
-    await update(ref(db, 'game'), {
-      lastLog: `🎲 ${myName} rolled ${roll} → Tile ${newPos}`,
-      lastLogType: ''
-    });
-
-    btn.disabled = false;
-
-    if (newPos >= 50) {
-      await update(ref(db, 'game'), {
-        status: 'finished',
-        lastLog: `🏆 ${myName} reached tile 50 and wins!`,
-        lastLogType: 'good'
-      });
+    // Lobby
+    if(status==='waiting'){
+      document.getElementById('lobby-screen').classList.remove('hidden');
+      document.getElementById('game-screen').classList.add('hidden');
+      const lobbyList=document.getElementById('lobby-list');
+      lobbyList.innerHTML=Object.values(players).map((p,i)=>{
+        const c=PLAYER_COLORS[i%PLAYER_COLORS.length];
+        return `<div class="p-row"><div class="p-avatar" style="background:${c.bg};border:1.5px solid ${c.border};color:${c.text};">${(p.name||'?')[0].toUpperCase()}</div><span class="p-name">${p.name}</span></div>`;
+      }).join('');
       return;
     }
 
-    if (CYBER_TILES.has(newPos)) {
-      const usedSnap = await get(ref(db,'game/usedQ'));
-      const used = usedSnap.val() || [];
-      const pool = QUESTIONS.map((_,i)=>i).filter(i=>!used.includes(i));
-      const available = pool.length > 0 ? pool : QUESTIONS.map((_,i)=>i);
-      const qIdx = available[Math.floor(Math.random()*available.length)];
-      used.push(qIdx);
-      if (used.length >= QUESTIONS.length) await set(ref(db,'game/usedQ'), []);
-      else await set(ref(db,'game/usedQ'), used);
+    document.getElementById('lobby-screen').classList.add('hidden');
+    document.getElementById('game-screen').classList.remove('hidden');
 
-      await update(ref(db,'game'), {
-        question: { qIdx, playerId: myId, answered: false },
-        lastLog: `🔵 ${myName} hit a Cybersec tile!`,
-        lastLogType: 'cyber'
-      });
-    } else {
-      await nextTurn();
-    }
-  };
+    // Stats
+    document.getElementById('my-tile').textContent=me.pos||1;
+    document.getElementById('my-score').textContent=me.score||0;
+    myPowerup=me.powerup||null;
+    const pwEl=document.getElementById('my-powerup');
+    if(myPowerup) pwEl.textContent=myPowerup+'x';
+    else pwEl.textContent='—';
 
-  async function nextTurn() {
-    const snap = await get(ref(db,'game'));
-    const game = snap.val();
-    const players = game.players || {};
-    const ids = Object.keys(players).sort((a,b)=>players[a].joined-players[b].joined);
-    const idx = ids.indexOf(myId);
-    const nextId = ids[(idx+1) % ids.length];
-    await update(ref(db,'game'), {
-      currentTurn: nextId,
-      question: null,
-      lastLog: `↪ ${players[nextId].name}'s turn`,
-      lastLogType: ''
+    // Players list sorted by score
+    const pList=document.getElementById('p-list');
+    pList.innerHTML='';
+    Object.entries(players).sort((a,b)=>(b[1].score||0)-(a[1].score||0)).forEach(([id,p],i)=>{
+      const row=document.createElement('div');
+      row.className='p-row'+(id===myId?' me':'');
+      const c=PLAYER_COLORS[i%PLAYER_COLORS.length];
+      row.innerHTML=`
+        <div class="p-avatar" style="background:${c.bg};border:1.5px solid ${c.border};color:${c.text};">${(p.name||'?')[0].toUpperCase()}</div>
+        <span class="p-name">${p.name}${id===myId?' (you)':''}${p.powerup?` ⭐${p.powerup}x`:''}</span>
+        <span class="p-tile">T${p.pos||1}</span>
+        <span class="p-score">${p.score||0}pt</span>
+      `;
+      pList.appendChild(row);
     });
+
+    // Win
+    if(status==='finished'){
+      const winner=Object.values(players).sort((a,b)=>(b.score||0)-(a.score||0))[0];
+      document.getElementById('game-screen').classList.add('hidden');
+      document.getElementById('win-screen').classList.remove('hidden');
+      if(winner&&winner.name===myName){
+        document.getElementById('win-msg').textContent='🏆 You win!';
+        document.getElementById('win-sub').textContent=`You conquered CYBERHAX with ${winner.score||0} points!`;
+      } else {
+        document.getElementById('win-msg').textContent=`${winner?.name||'Someone'} wins!`;
+        document.getElementById('win-sub').textContent=`They scored ${winner?.score||0} pts. Better luck next time!`;
+      }
+      return;
+    }
+
+    // Powerup card — shown before question UI
+    if(qState&&!qState.answered&&qState.playerId===myId&&qState.awaitingPowerupChoice){
+      showPowerupCard(qState.pendingPowerup);
+      return;
+    } else {
+      document.getElementById('powerup-card').classList.add('hidden');
+    }
+
+    // Question
+    if(qState&&!qState.answered&&qState.playerId===myId&&!qState.awaitingPowerupChoice){
+      showQuestionUI(qState.qIdx, qState.activatedPowerup||null);
+      return;
+    } else {
+      document.getElementById('q-card').classList.add('hidden');
+    }
+
+    // Turn UI
+    const pill=document.getElementById('status-pill');
+    if(isMyTurn){
+      pill.className='status-pill your-turn'; pill.textContent='YOUR TURN';
+      document.getElementById('roll-card').classList.remove('hidden');
+      document.getElementById('wait-card').classList.add('hidden');
+    } else {
+      const cp=players[currentTurn];
+      pill.className='status-pill other-turn'; pill.textContent='Waiting...';
+      document.getElementById('roll-card').classList.add('hidden');
+      document.getElementById('wait-card').classList.remove('hidden');
+      document.getElementById('wait-msg').textContent=cp?`${cp.name} is taking their turn`:'Waiting...';
+    }
+  });
+}
+
+function showPowerupCard(multiplier){
+  document.getElementById('roll-card').classList.add('hidden');
+  document.getElementById('wait-card').classList.add('hidden');
+  document.getElementById('q-card').classList.add('hidden');
+  document.getElementById('powerup-card').classList.remove('hidden');
+  pendingPowerup=multiplier;
+  document.getElementById('powerup-type').textContent=multiplier+'x';
+  document.getElementById('powerup-desc').textContent=`${multiplier}x points on next correct answer`;
+}
+
+window.activatePowerup=async function(){
+  document.getElementById('powerup-card').classList.add('hidden');
+  await update(ref(db,'game'),{
+    'question/awaitingPowerupChoice':false,
+    'question/activatedPowerup':pendingPowerup,
+    lastLog:`⚡ ${myName} activated ${pendingPowerup}x powerup!`,
+    lastLogType:'bonus'
+  });
+  await update(ref(db,`game/players/${myId}`),{powerup:null});
+  playSound('bonus');
+};
+
+window.savePowerup=async function(){
+  document.getElementById('powerup-card').classList.add('hidden');
+  await update(ref(db,`game/players/${myId}`),{powerup:pendingPowerup});
+  await update(ref(db,'game'),{
+    'question/awaitingPowerupChoice':false,
+    'question/activatedPowerup':null,
+    lastLog:`💾 ${myName} saved their ${pendingPowerup}x powerup for later`,
+    lastLogType:'bonus'
+  });
+};
+
+function showQuestionUI(qIdx, activatedPowerup){
+  const snap_q=ref(db,`game`);
+  get(snap_q).then(s=>{
+    const QUESTIONS_DATA=window._QUESTIONS||[];
+    if(!QUESTIONS_DATA.length) return;
+    const q=QUESTIONS_DATA[qIdx%QUESTIONS_DATA.length];
+    document.getElementById('roll-card').classList.add('hidden');
+    document.getElementById('wait-card').classList.add('hidden');
+    document.getElementById('powerup-card').classList.add('hidden');
+    document.getElementById('q-card').classList.remove('hidden');
+    document.getElementById('q-result').classList.add('hidden');
+
+    const badge=document.getElementById('active-badge');
+    if(activatedPowerup){
+      badge.textContent=`⭐ ${activatedPowerup}x POWERUP ACTIVE`;
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+
+    // If player has a saved powerup and hasn't activated, show use button
+    const useArea=document.getElementById('use-powerup-area');
+    if(myPowerup&&!activatedPowerup){
+      useArea.innerHTML=`<button class="bonus-btn" style="margin-top:4px;font-size:12px;padding:8px;" onclick="useStoredPowerup()">⭐ Use stored ${myPowerup}x powerup</button>`;
+    } else {
+      useArea.innerHTML='';
+    }
+
+    document.getElementById('q-cat-p').textContent='🔵 '+q.cat;
+    document.getElementById('q-text-p').textContent=q.q;
+    const optsEl=document.getElementById('q-opts-p');
+    optsEl.innerHTML='';
+    q.opts.forEach((o,i)=>{
+      const btn=document.createElement('button');
+      btn.className='q-opt';
+      btn.innerHTML=`<span class="letter">${String.fromCharCode(65+i)}</span>${o}`;
+      btn.onclick=()=>submitAnswer(i,q,btn,optsEl,activatedPowerup);
+      optsEl.appendChild(btn);
+    });
+  });
+}
+
+window.useStoredPowerup=async function(){
+  await update(ref(db,'game'),{
+    'question/activatedPowerup':myPowerup,
+    lastLog:`⚡ ${myName} activated stored ${myPowerup}x powerup!`,
+    lastLogType:'bonus'
+  });
+  await update(ref(db,`game/players/${myId}`),{powerup:null});
+  playSound('bonus');
+};
+
+async function submitAnswer(chosen,q,btn,optsEl,activatedPowerup){
+  optsEl.querySelectorAll('.q-opt').forEach(b=>b.disabled=true);
+  const correct=chosen===q.ans;
+  optsEl.querySelectorAll('.q-opt')[q.ans].classList.add('correct');
+  if(!correct) btn.classList.add('wrong');
+
+  const multiplier=activatedPowerup||1;
+  const pointsEarned=correct?multiplier:0;
+
+  const result=document.getElementById('q-result');
+  result.className='result-box '+(correct?'correct':'wrong');
+  result.textContent=correct
+    ? `✅ Correct! +${pointsEarned} point${pointsEarned>1?'s':''}! Roll again!`
+    : '❌ Wrong! Turn ends.';
+  result.classList.remove('hidden');
+
+  if(correct){
+    const meSnap=await get(ref(db,`game/players/${myId}`));
+    const currentScore=meSnap.val()?.score||0;
+    await update(ref(db,`game/players/${myId}`),{score:currentScore+pointsEarned});
+    playSound('correct');
+  } else {
+    playSound('wrong');
   }
 
-  window.leaveGame = async function() {
-    if (!myId) return;
-    await remove(ref(db, `game/players/${myId}`));
-    location.reload();
-  };
+  await update(ref(db,'game'),{
+    'question/answered':true,
+    'question/correct':correct,
+    'question/chosen':chosen,
+    lastLog:correct
+      ? `✅ ${myName} answered correctly! +${pointsEarned}pt${multiplier>1?` (${multiplier}x powerup!)`:''}`
+      : `❌ ${myName} got it wrong.`,
+    lastLogType:correct?'good':'bad'
+  });
+
+  setTimeout(async()=>{
+    if(correct){
+      document.getElementById('q-card').classList.add('hidden');
+      document.getElementById('roll-card').classList.remove('hidden');
+      await update(ref(db,'game'),{question:null});
+    } else {
+      document.getElementById('q-card').classList.add('hidden');
+      await nextTurn();
+    }
+  },1800);
+}
+
+window.rollDice=async function(){
+  const btn=document.getElementById('roll-btn');
+  btn.disabled=true;
+  let i=0,face=0;
+  await new Promise(res=>{
+    const iv=setInterval(()=>{
+      face=Math.floor(Math.random()*6);
+      document.getElementById('dice-face').textContent=DICE_FACES[face];
+      if(++i>10){clearInterval(iv);res();}
+    },60);
+  });
+  playSound('dice');
+  const roll=face+1;
+  const snap=await get(ref(db,`game/players/${myId}`));
+  const me=snap.val();
+  const newPos=Math.min((me.pos||1)+roll,50);
+  await update(ref(db,`game/players/${myId}`),{pos:newPos});
+  await update(ref(db,'game'),{lastLog:`🎲 ${myName} rolled ${roll} → Tile ${newPos}`,lastLogType:''});
+  btn.disabled=false;
+
+  if(newPos>=50){
+    await update(ref(db,'game'),{status:'finished',lastLog:`🏆 ${myName} wins!`,lastLogType:'good'});
+    return;
+  }
+
+  if(BONUS_TILES.has(newPos)){
+    // Award random powerup
+    const multiplier=POWERUP_TYPES[Math.floor(Math.random()*POWERUP_TYPES.length)];
+    playSound('bonus');
+    const usedSnap=await get(ref(db,'game/usedQ'));
+    const used=usedSnap.val()||[];
+    const qIdx=pickQuestion(used);
+    await update(ref(db,'game'),{
+      question:{qIdx,playerId:myId,answered:false,isBonus:true,awaitingPowerupChoice:true,pendingPowerup:multiplier},
+      lastLog:`⭐ ${myName} landed on a BONUS tile and got a ${multiplier}x powerup!`,
+      lastLogType:'bonus'
+    });
+  } else if(CYBER_TILES.has(newPos)){
+    const usedSnap=await get(ref(db,'game/usedQ'));
+    const used=usedSnap.val()||[];
+    const qIdx=pickQuestion(used);
+    const newUsed=used.length>=(window._QUESTIONS?.length||14)-1?[qIdx]:[...used,qIdx];
+    await set(ref(db,'game/usedQ'),newUsed);
+    await update(ref(db,'game'),{
+      question:{qIdx,playerId:myId,answered:false,isBonus:false},
+      lastLog:`🔵 ${myName} hit a Cybersec tile!`,
+      lastLogType:'cyber'
+    });
+  } else {
+    await nextTurn();
+  }
+};
+
+function pickQuestion(used){
+  const total=window._QUESTIONS?.length||14;
+  const pool=Array.from({length:total},(_,i)=>i).filter(i=>!used.includes(i));
+  const available=pool.length>0?pool:Array.from({length:total},(_,i)=>i);
+  return available[Math.floor(Math.random()*available.length)];
+}
+
+async function nextTurn(){
+  const snap=await get(ref(db,'game'));
+  const game=snap.val();
+  const players=game.players||{};
+  const ids=Object.keys(players).sort((a,b)=>(players[a].joined||0)-(players[b].joined||0));
+  const idx=ids.indexOf(myId);
+  const nextId=ids[(idx+1)%ids.length];
+  await update(ref(db,'game'),{
+    currentTurn:nextId, question:null,
+    lastLog:`↪ ${players[nextId]?.name||'next'}'s turn`,
+    lastLogType:''
+  });
+}
+
+window.leaveGame=async function(){
+  if(!myId) return;
+  await remove(ref(db,`game/players/${myId}`));
+  location.reload();
+};
+
+// Load questions into window for player access
+const SHEET_CSV_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vRZK7rtaAQRYiPtM15GOs4-Iebk_0ii30YfSvZfbxbbLqCARRK8bhlzK4rd3NpW-BxKk8QEaVqUdF4C/pub?gid=0&single=true&output=csv';
+const FALLBACK=[
+  {q:"What does 'phishing' refer to?",opts:["Attacking servers directly","Tricking users into revealing credentials","Encrypting files for ransom","Sniffing network traffic"],ans:1,cat:"Social Engineering"},
+  {q:"What port does HTTPS use by default?",opts:["80","21","443","8080"],ans:2,cat:"Networking"},
+  {q:"What is a zero-day vulnerability?",opts:["A bug fixed within 24 hours","An exploit unknown to the vendor","A daily scheduled scan","A firewall misconfiguration"],ans:1,cat:"Vulnerabilities"},
+  {q:"Which algorithm is asymmetric encryption?",opts:["AES","DES","RSA","3DES"],ans:2,cat:"Cryptography"},
+  {q:"What does SQL injection exploit?",opts:["Weak passwords","Unvalidated user input in queries","Open ports","Outdated antivirus"],ans:1,cat:"Web Security"},
+  {q:"What is a VPN primarily used for?",opts:["Speed up internet","Encrypt and tunnel traffic","Block ads","Manage passwords"],ans:1,cat:"Networking"},
+  {q:"What does CIA stand for in cybersecurity?",opts:["Control, Integrity, Access","Confidentiality, Integrity, Availability","Cipher, Identity, Authentication","Central Intelligence Agency"],ans:1,cat:"Fundamentals"},
+  {q:"What is a brute-force attack?",opts:["Physically breaking hardware","Trying all possible passwords","Exploiting software bugs","Intercepting packets"],ans:1,cat:"Attacks"},
+  {q:"What is two-factor authentication (2FA)?",opts:["Two passwords","Password + a second verification factor","Biometric only","Encrypted login"],ans:1,cat:"Authentication"},
+  {q:"What does a firewall do?",opts:["Encrypts data","Monitors and filters network traffic","Scans for viruses","Generates passwords"],ans:1,cat:"Defense"},
+  {q:"What is ransomware?",opts:["Spyware that steals data","Malware that encrypts files for payment","A phishing email","A DoS tool"],ans:1,cat:"Malware"},
+  {q:"What is steganography?",opts:["Encrypting messages","Hiding data inside other files","Breaking ciphers","Password cracking"],ans:1,cat:"Cryptography"},
+  {q:"Which protocol is used to securely log into remote servers?",opts:["FTP","Telnet","SSH","HTTP"],ans:2,cat:"Protocols"},
+  {q:"What does 'OSINT' stand for?",opts:["Open Source Intelligence","Operational Security Interface","Online Security Integration","Object Signal Intelligence"],ans:0,cat:"Reconnaissance"},
+];
+async function loadQ(){
+  if(SHEET_CSV_URL==='https://docs.google.com/spreadsheets/d/e/2PACX-1vRZK7rtaAQRYiPtM15GOs4-Iebk_0ii30YfSvZfbxbbLqCARRK8bhlzK4rd3NpW-BxKk8QEaVqUdF4C/pub?gid=0&single=true&output=csv'){window._QUESTIONS=FALLBACK;return;}
+  try{
+    const res=await fetch(SHEET_CSV_URL);
+    const text=await res.text();
+    const rows=text.trim().split('\n').slice(1);
+    const ansMap={A:0,B:1,C:2,D:3};
+    const parsed=rows.map(row=>{
+      const cols=row.split(',').map(c=>c.trim().replace(/^"|"$/g,''));
+      return{q:cols[0],opts:[cols[1],cols[2],cols[3],cols[4]],ans:ansMap[cols[5]?.toUpperCase()]||0,cat:cols[6]||'General'};
+    }).filter(q=>q.q);
+    window._QUESTIONS=parsed.length>0?parsed:FALLBACK;
+  }catch(e){window._QUESTIONS=FALLBACK;}
+}
+loadQ();
 </script>
 </body>
 </html>
