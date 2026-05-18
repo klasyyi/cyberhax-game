@@ -418,13 +418,29 @@ window.generateCode=async function(){
   await update(ref(db,'game'),{sessionCode:code});
 };
 
-window.startGame=async function(){
-  const snap=await get(ref(db,'game/players'));const players=snap.val()||{};
-  const ids=Object.keys(players);if(!ids.length){alert('No players!');return;}
-  const first=ids.sort((a,b)=>(players[a].joined||0)-(players[b].joined||0))[0];
-  await update(ref(db,'game'),{status:'playing',currentTurn:first,lastLog:'▶ Game started!',lastLogType:'good'});
+window.startGame = async function() {
+  const snap = await get(ref(db, 'game/players'));
+  const players = snap.val() || {};
+  const ids = Object.keys(players);
+  
+  // Prevent starting if no one is there, and show a clear error
+  if(!ids.length) {
+    const errText = document.getElementById('admin-err');
+    errText.textContent = '⚠️ Cannot start: 0 players!';
+    setTimeout(() => errText.textContent = '', 3000);
+    return;
+  }
+  
+  const first = ids.sort((a,b) => (players[a].joined||0) - (players[b].joined||0))[0];
+  await update(ref(db, 'game'), {
+    status: 'playing',
+    currentTurn: first,
+    lastLog: '▶ Game started!',
+    lastLogType: 'good'
+  });
+  
   document.getElementById('lobby-overlay').classList.remove('show');
-  document.getElementById('start-btn').disabled=true;
+  document.getElementById('start-btn').disabled = true;
 };
 
 window.forceSkip=async function(){
@@ -439,13 +455,31 @@ window.forceSkip=async function(){
   await update(ref(db,'game'),{currentTurn:next,question:null,lastLog:`⏭ ${p.name} skipped by admin`,lastLogType:'bad'});
 };
 
-window.adminRestart=async function(){
-  if(!confirm('Restart? All progress reset.'))return;
-  stopConfetti();document.getElementById('win-overlay').classList.remove('show');
-  const cSnap=await get(ref(db,'game/sessionCode'));
-  await set(ref(db,'game'),{status:'waiting',lastLog:'🔄 Restarted by admin',lastLogType:'cyber',sessionCode:cSnap.val()||null});
+window.adminRestart = async function() {
+  if(!confirm('Restart? All progress reset.')) return;
+  stopConfetti();
+  document.getElementById('win-overlay').classList.remove('show');
+  
+  // FIX: Delete players one by one to respect your Firebase security rules
+  const snap = await get(ref(db, 'game/players'));
+  const players = snap.val() || {};
+  for(const id of Object.keys(players)) {
+    await remove(ref(db, `game/players/${id}`));
+  }
+  
+  // Update the game state safely
+  const cSnap = await get(ref(db, 'game/sessionCode'));
+  await update(ref(db, 'game'), {
+    status: 'waiting',
+    currentTurn: null,
+    question: null,
+    lastLog: '🔄 Restarted by admin',
+    lastLogType: 'cyber',
+    sessionCode: cSnap.val() || null
+  });
+  
   document.getElementById('lobby-overlay').classList.add('show');
-  document.getElementById('start-btn').disabled=false;
+  document.getElementById('start-btn').disabled = false;
 };
 
 window.kickPlayer=async function(id){
