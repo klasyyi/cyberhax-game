@@ -696,6 +696,7 @@ function sizeBoard(){
   if(!wrap||!board) return;
   const W=wrap.clientWidth-8;
   const H=wrap.clientHeight-8;
+  if(W<=0||H<=0){ requestAnimationFrame(sizeBoard); return; }
   // 10 cols, 5 rows, gap=2
   const tileW=Math.floor((W-20)/10);
   const tileH=Math.floor((H-10)/5);
@@ -717,7 +718,8 @@ function sizeBoard(){
 window.addEventListener('resize',sizeBoard);
 
 renderBoard({});
-setTimeout(sizeBoard,100);
+// Wait for full layout paint before sizing
+requestAnimationFrame(()=>requestAnimationFrame(sizeBoard));
 </script>
 </body>
 </html>
