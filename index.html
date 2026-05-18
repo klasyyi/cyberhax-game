@@ -323,8 +323,13 @@ fetch(SHEET_CSV_URL).then(r=>r.text()).then(text=>{
     const cols=parseCSVRow(row);
     return{q:cols[0],opts:[cols[1],cols[2],cols[3],cols[4]],ans:ansMap[cols[5]?.trim().toUpperCase()]||0,cat:cols[6]||'General'};
   }).filter(q=>q.q&&q.q.length>2);
-  if(parsed.length>0) QUESTIONS=parsed;
-}).catch(()=>{});
+  if(parsed.length>0){
+    QUESTIONS=parsed;
+    addLog(`📋 ${parsed.length} questions loaded from Sheet`,'good');
+  } else {
+    addLog('⚠ Sheet loaded but no valid questions found — using fallback','bad');
+  }
+}).catch(()=>{ addLog('⚠ Could not load Sheet — using fallback questions','bad'); });
 
 // ── Sounds ──
 function playSound(type){
@@ -541,7 +546,7 @@ onValue(ref(db,'game/reaction'),snap=>{
 });
 
 // ── Main listener ──
-let prevLog='', winShown=false;
+let prevLog='', winShown=false, prevPositions='', prevPlayerCount=0, prevCurrentTurn='', prevStatus='';
 onValue(ref(db,'game'),snap=>{
   const game=snap.val()||{};
   const players=game.players||{};
@@ -549,11 +554,29 @@ onValue(ref(db,'game'),snap=>{
   const status=game.status||'waiting';
   const qState=game.question||null;
   const logMsg=game.lastLog||'';
+  const pCount=Object.keys(players).length;
 
-  renderBoard(players, currentTurn);
-  renderPlayers(players,currentTurn);
-  renderLeaderboard(players);
-  setTimeout(sizeBoard,50);
+  // Auto-reset if all players leave mid-game
+  if(status==='playing'&&pCount===0){
+    set(ref(db,'game'),{status:'waiting',lastLog:'⚠ All players left — game reset',lastLogType:'bad'});
+    return;
+  }
+
+  // Only rebuild board if positions or active player changed
+  const posSnapshot=JSON.stringify(Object.entries(players).map(([id,p])=>({id,pos:p.pos,t:currentTurn===id})));
+  if(posSnapshot!==prevPositions||currentTurn!==prevCurrentTurn){
+    renderBoard(players,currentTurn);
+    prevPositions=posSnapshot;
+    prevCurrentTurn=currentTurn;
+  }
+
+  // Only re-render player list if count or scores changed
+  const plSnap=JSON.stringify(Object.entries(players).map(([id,p])=>({id,s:p.score,pos:p.pos,pw:p.powerup,t:currentTurn===id})));
+  if(plSnap!==JSON.stringify(window._prevPlSnap)){
+    renderPlayers(players,currentTurn);
+    renderLeaderboard(players);
+    window._prevPlSnap=JSON.parse(plSnap);
+  }
 
   if(status==='waiting'){
     document.getElementById('lobby-overlay').classList.add('show');
@@ -571,7 +594,6 @@ onValue(ref(db,'game'),snap=>{
   }
 
   const bar=document.getElementById('status-bar');
-  const pCount=Object.keys(players).length;
   if(status==='waiting') bar.textContent=`Lobby: ${pCount}/4 joined`;
   else if(status==='playing'){const cp=players[currentTurn];bar.textContent=cp?`${cp.avatarEmoji||''} ${cp.name}'s turn`:'In progress';}
   else if(status==='finished'){bar.textContent='🏆 Game Over!';}
@@ -611,19 +633,27 @@ onValue(ref(db,'game'),snap=>{
   } else { document.getElementById('q-overlay').classList.remove('show'); }
 });
 
-// ── Heartbeat check ──
-setInterval(async()=>{
-  const snap=await get(ref(db,'game')); const game=snap.val();
-  if(!game||game.status!=='playing') return;
-  const players=game.players||{}; const currentTurn=game.currentTurn;
-  if(!currentTurn||!players[currentTurn]) return;
-  const p=players[currentTurn];
-  if(p.heartbeat&&Date.now()-p.heartbeat>12000){
-    const ids=Object.keys(players).filter(k=>k!==currentTurn).sort((a,b)=>(players[a].joined||0)-(players[b].joined||0));
-    if(ids.length>0) await update(ref(db,'game'),{currentTurn:ids[0],question:null,lastLog:`⚠ ${p.name} disconnected — skipped`,lastLogType:'bad'});
-    await remove(ref(db,'game/players/'+currentTurn));
+// ── Heartbeat check — only runs during active game ──
+let heartbeatInterval=null;
+onValue(ref(db,'game/status'),snap=>{
+  const status=snap.val();
+  if(status==='playing'&&!heartbeatInterval){
+    heartbeatInterval=setInterval(async()=>{
+      const snap=await get(ref(db,'game')); const game=snap.val();
+      if(!game||game.status!=='playing'){clearInterval(heartbeatInterval);heartbeatInterval=null;return;}
+      const players=game.players||{}; const currentTurn=game.currentTurn;
+      if(!currentTurn||!players[currentTurn]) return;
+      const p=players[currentTurn];
+      if(p.heartbeat&&Date.now()-p.heartbeat>12000){
+        const ids=Object.keys(players).filter(k=>k!==currentTurn).sort((a,b)=>(players[a].joined||0)-(players[b].joined||0));
+        if(ids.length>0) await update(ref(db,'game'),{currentTurn:ids[0],question:null,lastLog:`⚠ ${p.name} disconnected — skipped`,lastLogType:'bad'});
+        await remove(ref(db,'game/players/'+currentTurn));
+      }
+    },6000);
+  } else if(status!=='playing'&&heartbeatInterval){
+    clearInterval(heartbeatInterval); heartbeatInterval=null;
   }
-},6000);
+});
 
 // ── Fullscreen ──
 window.toggleFullscreen=function(){
