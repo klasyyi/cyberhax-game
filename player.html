@@ -701,7 +701,10 @@ window.leaveGame=async function(){
 
 // Load questions
 const SHEET_CSV_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vRZK7rtaAQRYiPtM15GOs4-Iebk_0ii30YfSvZfbxbbLqCARRK8bhlzK4rd3NpW-BxKk8QEaVqUdF4C/pub?gid=0&single=true&output=csv';
-
+const FALLBACK=[
+  {q:"What does 'phishing' refer to?",opts:["Attacking servers","Tricking users into revealing credentials","Encrypting files","Sniffing traffic"],ans:1,cat:"Fallback"},
+  {q:"What port does HTTPS use by default?",opts:["80","21","443","8080"],ans:2,cat:"Fallback"},
+];
 function parseCSVRow(row){
   const cols=[]; let cur='', inQ=false;
   for(let i=0;i<row.length;i++){
