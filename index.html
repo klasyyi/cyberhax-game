@@ -16,21 +16,23 @@ body{display:flex;flex-direction:column;}
 .main{display:flex;flex:1;gap:10px;padding:5px 10px 5px;overflow:hidden;min-height:0;}
 
 /* BOARD COLUMN */
-.board-col{display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden;}
+.board-col{display:flex;flex-direction:column;flex:1;min-width:0;min-height:0;overflow:hidden;}
 
 /* KEY FIX: board uses CSS viewport units so it always fits */
 .board{
   display:grid;
-  grid-template-columns:repeat(10,minmax(0,1fr));
+  grid-template-columns:repeat(10,1fr);
+  grid-template-rows:repeat(5,1fr);
   gap:2px;
-  width:min(calc(100vh - 90px), calc(100vw - 280px));
-  height:calc((min(calc(100vh - 90px), calc(100vw - 280px))) * 0.5);
-  flex-shrink:0;
+  flex:1;
+  width:100%;
+  min-height:0;
 }
 .tile{
   border-radius:5px;border:1.5px solid #1a3050;background:#0a1628;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   color:#3a6a9a;position:relative;overflow:hidden;min-width:0;min-height:0;
+  aspect-ratio:unset;
 }
 .tile.cyber{background:#08213d;border-color:#1a6fdb;animation:pb 2.5s infinite;}
 .tile.bonus{background:#1a1a08;border-color:#d4a017;animation:pg 2.5s infinite;}
