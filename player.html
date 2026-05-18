@@ -304,6 +304,15 @@ buildAvatarPicker();
 
 // ── Sounds ──
 function playSound(type){
+  // Haptic feedback (Android only — iOS doesn't support navigator.vibrate)
+  if(navigator.vibrate){
+    if(type==='correct') navigator.vibrate([50,30,50]);
+    else if(type==='wrong') navigator.vibrate([200]);
+    else if(type==='bonus') navigator.vibrate([30,20,30,20,80]);
+    else if(type==='dice') navigator.vibrate(30);
+    else if(type==='steal') navigator.vibrate([100,50,100]);
+    else if(type==='teleport') navigator.vibrate([80,40,160]);
+  }
   try{
     const ctx=new(window.AudioContext||window.webkitAudioContext)();
     const g=ctx.createGain(); g.connect(ctx.destination);
