@@ -353,14 +353,26 @@ window.joinGame=async function(){
   if(!name){document.getElementById('msg').textContent='Enter your name!';return;}
   if(selectedAvatar===null){document.getElementById('msg').textContent='Pick an avatar!';return;}
 
+  // Show spinner
+  const joinBtn=document.querySelector('#join-screen button');
+  const origText=joinBtn.textContent;
+  joinBtn.textContent='Connecting...'; joinBtn.disabled=true;
+  document.getElementById('msg').textContent='';
+
+  try{
   const codeSnap=await get(ref(db,'game/sessionCode'));
   const validCode=(codeSnap.val()||'').toUpperCase();
-  if(!validCode){document.getElementById('msg').textContent='No session started. Ask the host!';return;}
-  if(pw!==validCode){document.getElementById('msg').textContent='Wrong session code!';return;}
+  if(!validCode){document.getElementById('msg').textContent='No session started. Ask the host!';joinBtn.textContent=origText;joinBtn.disabled=false;return;}
+  if(pw!==validCode){document.getElementById('msg').textContent='Wrong session code!';joinBtn.textContent=origText;joinBtn.disabled=false;return;}
 
   const snap=await get(ref(db,'game/players'));
   const players=snap.val()||{};
-  if(Object.keys(players).length>=4){document.getElementById('msg').textContent='Game full (max 4)!';return;}
+  if(Object.keys(players).length>=4){document.getElementById('msg').textContent='Game full (max 4)!';joinBtn.textContent=origText;joinBtn.disabled=false;return;}
+
+  // Wait for questions to load before joining (max 3s)
+  if(!window._QUESTIONS||window._QUESTIONS.length===0){
+    await new Promise(res=>setTimeout(res,1500));
+  }
 
   myId='p_'+Date.now();
   myName=name;
@@ -377,6 +389,10 @@ window.joinGame=async function(){
   document.getElementById('join-screen').classList.add('hidden');
   document.getElementById('lobby-screen').classList.remove('hidden');
   listenGame();
+  }catch(e){
+    document.getElementById('msg').textContent='Connection error. Try again.';
+    joinBtn.textContent=origText; joinBtn.disabled=false;
+  }
 };
 
 // ── Emoji reactions ──
