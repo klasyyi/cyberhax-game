@@ -400,125 +400,107 @@ window.sendReaction=async function(emoji){
 };
 
 // ── Game listener ──
-function listenGame(){
-  // Detect if this player was kicked
-  onValue(ref(db,'game'),snap=>{
-    const game=snap.val();
-    if(!game) return;
-    const players=game.players||{};
+function listenGame() {
+  // Detect if this player was kicked manually
+  onValue(ref(db, `game/kicked/${myId}`), snap => {
+    if (snap.val()) {
+      alert('You were removed from the game by the admin.');
+      location.reload();
+    }
+  });
+
+  // Main game state listener
+  onValue(ref(db, 'game'), snap => {
+    const game = snap.val();
+    if (!game) return;
+    const players = game.players || {};
     
-    // --- BUG FIX: Auto-Kick ---
-    // If you have an ID, but you're missing from the players list, the admin wiped you!
+    // --- BUG FIX: Detect if Admin Restarted the Game ---
+    // If you have an ID but are missing from the players list, the admin wiped the board
     if (myId && !players[myId]) {
-      alert("The admin restarted the game!");
+      alert("The admin restarted the game! Rejoining...");
       location.reload();
       return;
     }
-    
-    const currentTurn=game.currentTurn;
 
-  onValue(ref(db,'game'),snap=>{
-    const game=snap.val();
-    if(!game) return;
-    const players=game.players||{};
-    const currentTurn=game.currentTurn;
-    const status=game.status;
-    const qState=game.question;
-    const isMyTurn=currentTurn===myId;
-    const me=players[myId];
-    // If player not found and not in waiting status, they were removed
-    if(!me&&status!=='waiting') return;
-    if(!me) return;
+    const currentTurn = game.currentTurn;
+    const status = game.status;
+    const qState = game.question;
+    const isMyTurn = currentTurn === myId;
+    const me = players[myId];
 
-    if(status==='waiting'){
+    if (!me) return;
+
+    if (status === 'waiting') {
       document.getElementById('lobby-screen').classList.remove('hidden');
       document.getElementById('game-screen').classList.add('hidden');
-      const ll=document.getElementById('lobby-list');
-      ll.innerHTML=Object.values(players).map(p=>`<div class="p-row"><div class="p-avatar-sm">${p.avatarEmoji||'👤'}</div><span class="p-name">${p.name}</span></div>`).join('');
+      const ll = document.getElementById('lobby-list');
+      ll.innerHTML = Object.values(players).map(p => `<div class="p-row"><div class="p-avatar-sm">${p.avatarEmoji || '👤'}</div><span class="p-name">${p.name}</span></div>`).join('');
       return;
     }
 
     document.getElementById('lobby-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
 
-    document.getElementById('my-tile').textContent=me.pos||1;
-    document.getElementById('my-score').textContent=me.score||0;
-    myPowerup=me.powerup||null;
-    document.getElementById('my-powerup').textContent=myPowerup?myPowerup+'x':'—';
+    document.getElementById('my-tile').textContent = me.pos || 1;
+    document.getElementById('my-score').textContent = me.score || 0;
+    myPowerup = me.powerup || null;
+    document.getElementById('my-powerup').textContent = myPowerup ? myPowerup + 'x' : '—';
 
-    // Players list
-    const pList=document.getElementById('p-list');
-    pList.innerHTML='';
-    Object.entries(players).sort((a,b)=>(b[1].score||0)-(a[1].score||0)).forEach(([id,p])=>{
-      const row=document.createElement('div');
-      row.className='p-row'+(id===myId?' me':'');
-      row.innerHTML=`
-        <div class="p-avatar-sm" style="background:${p.avatarBg||'#0d1f3a'};border-radius:50%;">${p.avatarEmoji||'👤'}</div>
-        <span class="p-name">${p.name}${id===myId?' (you)':''}${p.powerup?` ⭐${p.powerup}x`:''}</span>
-        <span class="p-tile">T${p.pos||1}</span>
-        <span class="p-score">${p.score||0}pt</span>
+    // Update Players list
+    const pList = document.getElementById('p-list');
+    pList.innerHTML = '';
+    Object.entries(players).sort((a, b) => (b[1].score || 0) - (a[1].score || 0)).forEach(([id, p]) => {
+      const row = document.createElement('div');
+      row.className = 'p-row' + (id === myId ? ' me' : '');
+      row.innerHTML = `
+        <div class="p-avatar-sm" style="background:${p.avatarBg || '#0d1f3a'};border-radius:50%;">${p.avatarEmoji || '👤'}</div>
+        <span class="p-name">${p.name}${id === myId ? ' (you)' : ''}${p.powerup ? ` ⭐${p.powerup}x` : ''}</span>
+        <span class="p-tile">T${p.pos || 1}</span>
+        <span class="p-score">${p.score || 0}pt</span>
       `;
       pList.appendChild(row);
     });
 
-    // Win
-    if(status==='finished'){
+    // Handle game finished
+    if (status === 'finished') {
       document.getElementById('game-screen').classList.add('hidden');
       document.getElementById('win-screen').classList.remove('hidden');
-      const sorted=Object.values(players).sort((a,b)=>(b.score||0)-(a.score||0));
-      const winner=sorted[0];
-      const RANK=['🥇','🥈','🥉','4️⃣'];
-      document.getElementById('win-msg').textContent=winner?.name===myName?'🏆 You win!':winner?.name+' wins!';
-      document.getElementById('win-sub').textContent=winner?.name===myName?`You conquered CYBERHAX with ${winner.score||0} pts!`:`They scored ${winner?.score||0} pts. Better luck next time!`;
-      document.getElementById('win-lb').innerHTML=sorted.map((p,i)=>`
+      const sorted = Object.values(players).sort((a, b) => (b.score || 0) - (a.score || 0));
+      const winner = sorted[0];
+      const RANK = ['🥇', '🥈', '🥉', '4️⃣'];
+      document.getElementById('win-msg').textContent = winner?.name === myName ? '🏆 You win!' : winner?.name + ' wins!';
+      document.getElementById('win-sub').textContent = winner?.name === myName ? `You conquered CYBERHAX with ${winner.score || 0} pts!` : `They scored ${winner?.score || 0} pts. Better luck next time!`;
+      document.getElementById('win-lb').innerHTML = sorted.map((p, i) => `
         <div class="p-row">
-          <span style="font-size:16px;min-width:24px;">${RANK[i]||''}</span>
-          <div class="p-avatar-sm" style="background:${p.avatarBg||'#0d1f3a'};border-radius:50%;">${p.avatarEmoji||'👤'}</div>
+          <span style="font-size:16px;min-width:24px;">${RANK[i] || ''}</span>
+          <div class="p-avatar-sm" style="background:${p.avatarBg || '#0d1f3a'};border-radius:50%;">${p.avatarEmoji || '👤'}</div>
           <span class="p-name">${p.name}</span>
-          <span class="p-score">${p.score||0}pt</span>
+          <span class="p-score">${p.score || 0}pt</span>
         </div>`).join('');
       return;
     }
 
-    // Steal UI
-    if(qState&&qState.playerId===myId&&qState.awaitingSteal){
-      showStealUI(players);
-      return;
-    } else { document.getElementById('steal-card').classList.add('hidden'); }
+    // Hide/Show cards based on game state
+    if (qState && qState.playerId === myId && qState.awaitingSteal) { showStealUI(players); return; } else { document.getElementById('steal-card').classList.add('hidden'); }
+    if (qState && qState.playerId === myId && qState.awaitingTeleport) { showTeleportUI(qState.teleportTo); return; } else { document.getElementById('teleport-card').classList.add('hidden'); }
+    if (qState && !qState.answered && qState.playerId === myId && qState.awaitingPowerupChoice) { showPowerupCard(qState.pendingPowerup); return; } else { document.getElementById('powerup-card').classList.add('hidden'); }
+    if (qState && !qState.answered && qState.playerId === myId && !qState.awaitingPowerupChoice) { showQuestionUI(qState.qIdx, qState.activatedPowerup || null); return; } else { document.getElementById('q-card').classList.add('hidden'); }
 
-    // Teleport UI
-    if(qState&&qState.playerId===myId&&qState.awaitingTeleport){
-      showTeleportUI(qState.teleportTo);
-      return;
-    } else { document.getElementById('teleport-card').classList.add('hidden'); }
-
-    // Powerup choice UI
-    if(qState&&!qState.answered&&qState.playerId===myId&&qState.awaitingPowerupChoice){
-      showPowerupCard(qState.pendingPowerup);
-      return;
-    } else { document.getElementById('powerup-card').classList.add('hidden'); }
-
-    // Question UI
-    if(qState&&!qState.answered&&qState.playerId===myId&&!qState.awaitingPowerupChoice){
-      showQuestionUI(qState.qIdx,qState.activatedPowerup||null);
-      return;
-    } else { document.getElementById('q-card').classList.add('hidden'); }
-
-    // Turn UI
-    const pill=document.getElementById('status-pill');
-    if(isMyTurn){
-      pill.className='status-pill your-turn'; pill.textContent='YOUR TURN';
+    // Turn UI updates
+    const pill = document.getElementById('status-pill');
+    if (isMyTurn) {
+      pill.className = 'status-pill your-turn'; pill.textContent = 'YOUR TURN';
       document.getElementById('roll-card').classList.remove('hidden');
       document.getElementById('wait-card').classList.add('hidden');
     } else {
-      const cp=players[currentTurn];
-      pill.className='status-pill other-turn'; pill.textContent='Waiting...';
+      const cp = players[currentTurn];
+      pill.className = 'status-pill other-turn'; pill.textContent = 'Waiting...';
       document.getElementById('roll-card').classList.add('hidden');
       document.getElementById('wait-card').classList.remove('hidden');
-      document.getElementById('wait-msg').textContent=cp?`${cp.avatarEmoji||''} ${cp.name} is rolling`:'Waiting...';
+      document.getElementById('wait-msg').textContent = cp ? `${cp.avatarEmoji || ''} ${cp.name} is rolling` : 'Waiting...';
     }
-  });
-}
+  }); // This closing }); was likely missing!
 }
 
 function showPowerupCard(multiplier){
