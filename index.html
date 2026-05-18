@@ -160,8 +160,14 @@ h1{font-size:20px;font-weight:700;letter-spacing:4px;color:#7ec8ff;line-height:1
 .lobby-player{padding:7px 12px;border-radius:8px;background:#0c3d20;border:1px solid #1d9e75;color:#5dcaa5;font-size:13px;}
 .lobby-close{position:absolute;top:10px;right:12px;background:none;border:none;color:#3fa0ff;font-size:18px;cursor:pointer;}
 
-/* Session code */
-.session-code-display{font-size:30px;font-weight:700;letter-spacing:6px;color:#f5c23d;margin:6px 0;min-height:38px;font-family:monospace;}
+/* FULLSCREEN BTN */
+.fullscreen-btn{position:fixed;bottom:12px;right:12px;z-index:300;background:#0a1628;border:1px solid #1a3050;color:#3fa0ff;border-radius:8px;padding:7px 12px;cursor:pointer;font-size:13px;font-family:'Segoe UI',sans-serif;transition:background 0.15s;}
+.fullscreen-btn:hover{background:#0d1f3a;border-color:#1a6fdb;}
+/* ACTIVE TILE HIGHLIGHT */
+.tile.active-player{box-shadow:0 0 0 3px #f5c23d,0 0 18px #f5c23d88!important;animation:activeGlow 1s infinite!important;}
+@keyframes activeGlow{0%,100%{box-shadow:0 0 0 2px #f5c23d,0 0 12px #f5c23d66;}50%{box-shadow:0 0 0 3px #f5c23d,0 0 22px #f5c23daa;}}
+/* FORCE SKIP */
+.abtn.skip{border-color:#f5a020;color:#f5c23d;background:#1a1208;}
 </style>
 </head>
 <body>
@@ -225,12 +231,16 @@ h1{font-size:20px;font-weight:700;letter-spacing:4px;color:#7ec8ff;line-height:1
         <p style="font-size:11px;color:#5dcaa5;margin-bottom:2px;">✅ Admin unlocked</p>
         <button class="abtn gold" onclick="generateSessionCode()">🎲 GENERATE SESSION CODE</button>
         <button class="start-btn" id="start-btn" onclick="startGame()">▶ START GAME</button>
+        <button class="abtn skip" onclick="forceSkipTurn()">⏭ FORCE SKIP TURN</button>
         <button class="abtn danger" onclick="adminRestart()">🔄 RESTART GAME</button>
         <div id="kick-list" style="margin-top:4px;"></div>
       </div>
     </div>
   </div>
 </div>
+
+<!-- Fullscreen button -->
+<button class="fullscreen-btn" onclick="toggleFullscreen()" id="fs-btn">⛶ Fullscreen</button>
 
 <!-- Dice overlay -->
 <div class="dice-overlay" id="dice-overlay">
@@ -359,7 +369,7 @@ window.stopConfetti=function(){
 function buildTileOrder(){const rows=[];for(let r=0;r<5;r++){const start=r*10+1,row=[];for(let t=start;t<start+10;t++)row.push(t);rows.push(r%2===0?row:[...row].reverse());}return rows.flat();}
 const tileOrder=buildTileOrder();
 
-function renderBoard(players){
+function renderBoard(players, currentTurn){
   const board=document.getElementById('board'); board.innerHTML='';
   tileOrder.forEach(n=>{
     const div=document.createElement('div');
@@ -368,6 +378,8 @@ function renderBoard(players){
     else if(CYBER_TILES.has(n)) cls+=' cyber';
     else if(BONUS_TILES.has(n)) cls+=' bonus';
     else if(TELEPORT_TILES.has(n)) cls+=' teleport';
+    // Highlight tile where active player stands
+    if(currentTurn&&players&&players[currentTurn]&&players[currentTurn].pos===n) cls+=' active-player';
     div.className=cls;
     div.id='tile-'+n;
     const num=document.createElement('div'); num.className='tnum'; num.textContent=n;
@@ -538,7 +550,7 @@ onValue(ref(db,'game'),snap=>{
   const qState=game.question||null;
   const logMsg=game.lastLog||'';
 
-  renderBoard(players);
+  renderBoard(players, currentTurn);
   renderPlayers(players,currentTurn);
   renderLeaderboard(players);
   setTimeout(sizeBoard,50);
@@ -612,6 +624,36 @@ setInterval(async()=>{
     await remove(ref(db,'game/players/'+currentTurn));
   }
 },6000);
+
+// ── Fullscreen ──
+window.toggleFullscreen=function(){
+  const btn=document.getElementById('fs-btn');
+  if(!document.fullscreenElement){
+    document.documentElement.requestFullscreen();
+    btn.textContent='✕ Exit Fullscreen';
+  } else {
+    document.exitFullscreen();
+    btn.textContent='⛶ Fullscreen';
+  }
+};
+document.addEventListener('fullscreenchange',()=>{
+  if(!document.fullscreenElement) document.getElementById('fs-btn').textContent='⛶ Fullscreen';
+  setTimeout(sizeBoard,200);
+});
+
+// ── Force skip turn ──
+window.forceSkipTurn=async function(){
+  const snap=await get(ref(db,'game')); const game=snap.val()||{};
+  if(game.status!=='playing'){alert('Game not started.');return;}
+  const players=game.players||{}; const currentTurn=game.currentTurn;
+  if(!currentTurn||!players[currentTurn]){alert('No active player.');return;}
+  const p=players[currentTurn];
+  if(!confirm(`Force skip ${p.name}'s turn?`)) return;
+  const ids=Object.keys(players).sort((a,b)=>(players[a].joined||0)-(players[b].joined||0));
+  const idx=ids.indexOf(currentTurn);
+  const nextId=ids[(idx+1)%ids.length];
+  await update(ref(db,'game'),{currentTurn:nextId,question:null,lastLog:`⏭ ${p.name}'s turn was skipped by admin`,lastLogType:'bad'});
+};
 
 // ── Dynamic board sizing ──
 function sizeBoard(){
