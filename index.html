@@ -474,7 +474,10 @@ window.adminRestart=async function(){
   if(!confirm('Restart game? All progress reset.')) return;
   stopConfetti();
   document.getElementById('win-overlay').classList.remove('show');
-  await set(ref(db,'game'),{status:'waiting',lastLog:'🔄 Restarted by admin',lastLogType:'cyber'});
+  // Use set but preserve sessionCode
+  const codeSnap=await get(ref(db,'game/sessionCode'));
+  const existingCode=codeSnap.val()||null;
+  await set(ref(db,'game'),{status:'waiting',lastLog:'🔄 Restarted by admin',lastLogType:'cyber',sessionCode:existingCode});
   document.getElementById('lobby-overlay').classList.add('show');
   document.getElementById('start-btn').disabled=false;
 };
@@ -558,7 +561,8 @@ onValue(ref(db,'game'),snap=>{
 
   // Auto-reset if all players leave mid-game
   if(status==='playing'&&pCount===0){
-    set(ref(db,'game'),{status:'waiting',lastLog:'⚠ All players left — game reset',lastLogType:'bad'});
+    const codeSnap=await get(ref(db,'game/sessionCode'));
+    set(ref(db,'game'),{status:'waiting',lastLog:'⚠ All players left — game reset',lastLogType:'bad',sessionCode:codeSnap.val()||null});
     return;
   }
 
