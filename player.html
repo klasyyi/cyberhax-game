@@ -402,12 +402,20 @@ window.sendReaction=async function(emoji){
 // ── Game listener ──
 function listenGame(){
   // Detect if this player was kicked
-  onValue(ref(db,`game/kicked/${myId}`),snap=>{
-    if(snap.val()){
-      alert('You were removed from the game by the admin.');
+  onValue(ref(db,'game'),snap=>{
+    const game=snap.val();
+    if(!game) return;
+    const players=game.players||{};
+    
+    // --- BUG FIX: Auto-Kick ---
+    // If you have an ID, but you're missing from the players list, the admin wiped you!
+    if (myId && !players[myId]) {
+      alert("The admin restarted the game!");
       location.reload();
+      return;
     }
-  });
+    
+    const currentTurn=game.currentTurn;
 
   onValue(ref(db,'game'),snap=>{
     const game=snap.val();
