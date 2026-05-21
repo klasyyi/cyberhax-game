@@ -1,0 +1,486 @@
+import { db } from '../firebase-config.js';
+import { ref, set, get, onValue, update, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const CYBER_TILES = new Set([3,7,11,15,18,22,25,29,33,36,39,42,45,48]);
+const BONUS_TILES = new Set([6,14,21,35,44]);
+const TELEPORT_TILES = new Set([9,20,30,40]);
+const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+const POWERUP_TYPES = [2,3];
+
+const AVATARS = [
+  // Fierce
+  {emoji:'💀',name:'Skull',  cat:'Fierce',color:'#e05555',bg:'#2a0808'},
+  {emoji:'🐉',name:'Dragon', cat:'Fierce',color:'#e07020',bg:'#2a1408'},
+  {emoji:'🐺',name:'Wolf',   cat:'Fierce',color:'#8888cc',bg:'#14142a'},
+  {emoji:'🐍',name:'Viper',  cat:'Fierce',color:'#50c050',bg:'#082808'},
+  {emoji:'👻',name:'Ghost',  cat:'Fierce',color:'#aaaaee',bg:'#10102a'},
+  {emoji:'🐆',name:'Panther',cat:'Fierce',color:'#d4a017',bg:'#1a1408'},
+  // Cute
+  {emoji:'🐱',name:'Cat',    cat:'Cute',  color:'#ff88aa',bg:'#2a0818'},
+  {emoji:'🦊',name:'Fox',    cat:'Cute',  color:'#ff8833',bg:'#2a1008'},
+  {emoji:'🐰',name:'Bunny',  cat:'Cute',  color:'#ffaacc',bg:'#2a0818'},
+  {emoji:'🐧',name:'Penguin',cat:'Cute',  color:'#88ccff',bg:'#081428'},
+  {emoji:'🐼',name:'Panda',  cat:'Cute',  color:'#cccccc',bg:'#1a1a1a'},
+  {emoji:'🦎',name:'Axolotl',cat:'Cute',  color:'#ff77dd',bg:'#28082a'},
+];
+
+let myId=null, myName='', myPowerup=null, pendingPowerup=null, selectedAvatar=null;
+let reactionCooldown=false;
+
+// ── Build avatar picker ──
+function buildAvatarPicker(){
+  const fierceGrid=document.getElementById('fierce-grid');
+  const cuteGrid=document.getElementById('cute-grid');
+  AVATARS.forEach((av,i)=>{
+    const btn=document.createElement('div');
+    btn.className='avatar-opt';
+    btn.style.setProperty('--av-color',av.color);
+    btn.innerHTML=`<span>${av.emoji}</span><span class="av-label">${av.name}</span>`;
+    btn.onclick=()=>selectAvatar(i);
+    (av.cat==='Fierce'?fierceGrid:cuteGrid).appendChild(btn);
+  });
+  selectAvatar(0);
+}
+
+function selectAvatar(i){
+  selectedAvatar=i;
+  document.querySelectorAll('.avatar-opt').forEach((el,j)=>{
+    el.classList.toggle('selected',j===i);
+  });
+  const av=AVATARS[i];
+  document.getElementById('selected-preview').style.display='flex';
+  document.getElementById('preview-emoji').textContent=av.emoji;
+  document.getElementById('preview-name').textContent=av.name;
+  document.getElementById('preview-cat').textContent=av.cat;
+}
+buildAvatarPicker();
+
+// ── Sounds ──
+function playSound(type){
+  if(navigator.vibrate){
+    if(type==='correct') navigator.vibrate([50,30,50]);
+    else if(type==='wrong') navigator.vibrate([200]);
+    else if(type==='bonus') navigator.vibrate([30,20,30,20,80]);
+    else if(type==='dice') navigator.vibrate(30);
+    else if(type==='steal') navigator.vibrate([100,50,100]);
+    else if(type==='teleport') navigator.vibrate([80,40,160]);
+  }
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const g=ctx.createGain(); g.connect(ctx.destination);
+    if(type==='dice'){
+      const o=ctx.createOscillator(); o.connect(g);
+      o.frequency.setValueAtTime(220,ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(440,ctx.currentTime+0.15);
+      g.gain.setValueAtTime(0.3,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.2);
+      o.start(); o.stop(ctx.currentTime+0.2);
+    } else if(type==='correct'){
+      [523,659,784].forEach((f,i)=>{const o=ctx.createOscillator();o.connect(g);o.frequency.value=f;o.start(ctx.currentTime+i*0.12);o.stop(ctx.currentTime+i*0.12+0.15);});
+      g.gain.setValueAtTime(0.3,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.5);
+    } else if(type==='wrong'){
+      const o=ctx.createOscillator(); o.connect(g);
+      o.frequency.setValueAtTime(300,ctx.currentTime); o.frequency.exponentialRampToValueAtTime(150,ctx.currentTime+0.3);
+      g.gain.setValueAtTime(0.3,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.3);
+      o.start(); o.stop(ctx.currentTime+0.3);
+    } else if(type==='bonus'){
+      [784,988,1047,1319].forEach((f,i)=>{const o=ctx.createOscillator();o.connect(g);o.frequency.value=f;o.start(ctx.currentTime+i*0.08);o.stop(ctx.currentTime+i*0.08+0.12);});
+      g.gain.setValueAtTime(0.3,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.5);
+    } else if(type==='teleport'){
+      const o=ctx.createOscillator(); o.connect(g); o.type='sine';
+      o.frequency.setValueAtTime(800,ctx.currentTime); o.frequency.exponentialRampToValueAtTime(200,ctx.currentTime+0.4);
+      g.gain.setValueAtTime(0.3,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.4);
+      o.start(); o.stop(ctx.currentTime+0.4);
+    } else if(type==='steal'){
+      [300,400,300].forEach((f,i)=>{const o=ctx.createOscillator();o.connect(g);o.frequency.value=f;o.start(ctx.currentTime+i*0.1);o.stop(ctx.currentTime+i*0.1+0.1);});
+      g.gain.setValueAtTime(0.3,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.35);
+    }
+  }catch(e){}
+}
+
+// ── Join ──
+window.joinGame = async function(){
+  const pw=document.getElementById('session-pw').value.trim().toUpperCase();
+  const name=document.getElementById('name-input').value.trim();
+  if(!pw){document.getElementById('msg').textContent='Enter the session code!';return;}
+  if(!name){document.getElementById('msg').textContent='Enter your name!';return;}
+  if(selectedAvatar===null){document.getElementById('msg').textContent='Pick an avatar!';return;}
+
+  const joinBtn=document.querySelector('#join-screen button');
+  const origText=joinBtn.textContent;
+  joinBtn.textContent='Connecting...'; joinBtn.disabled=true;
+  document.getElementById('msg').textContent='';
+
+  try{
+    const codeSnap=await get(ref(db,'game/sessionCode'));
+    const validCode=(codeSnap.val()||'').toUpperCase();
+    if(!validCode){document.getElementById('msg').textContent='No session started. Ask the host!';joinBtn.textContent=origText;joinBtn.disabled=false;return;}
+    if(pw!==validCode){document.getElementById('msg').textContent='Wrong session code!';joinBtn.textContent=origText;joinBtn.disabled=false;return;}
+
+    const snap=await get(ref(db,'game/players'));
+    const players=snap.val()||{};
+    if(Object.keys(players).length>=4){document.getElementById('msg').textContent='Game full (max 4)!';joinBtn.textContent=origText;joinBtn.disabled=false;return;}
+
+    if(!window._QUESTIONS||window._QUESTIONS.length===0){
+      await new Promise(res=>setTimeout(res,1500));
+    }
+
+    myId='p_'+Date.now();
+    myName=name;
+    const av=AVATARS[selectedAvatar];
+
+    const myRef=ref(db,`game/players/${myId}`);
+    await set(myRef,{name,pos:1,score:0,powerup:null,joined:Date.now(),heartbeat:Date.now(),avatarIdx:selectedAvatar,avatarEmoji:av.emoji,avatarColor:av.color,avatarBg:av.bg});
+    onDisconnect(myRef).remove();
+
+    await update(ref(db,'game'),{status:'waiting',lastLog:`${av.emoji} ${name} joined the lobby`,lastLogType:''});
+
+    setInterval(async()=>{ if(myId) await update(ref(db,`game/players/${myId}`),{heartbeat:Date.now()}); },5000);
+
+    document.getElementById('join-screen').classList.add('hidden');
+    document.getElementById('lobby-screen').classList.remove('hidden');
+    listenGame();
+  }catch(e){
+    document.getElementById('msg').textContent='Connection error. Try again.';
+    joinBtn.textContent=origText; joinBtn.disabled=false;
+  }
+};
+
+// ── Emoji reactions ──
+window.sendReaction = async function(emoji){
+  if(reactionCooldown) return;
+  reactionCooldown=true;
+  setTimeout(()=>reactionCooldown=false,2000);
+  await set(ref(db,'game/reaction'),{emoji,from:myName,t:Date.now()});
+};
+
+// ── Game listener ──
+function listenGame() {
+  onValue(ref(db, `game/kicked/${myId}`), snap => {
+    if (snap.val()) {
+      alert('You were removed from the game by the admin.');
+      location.reload();
+    }
+  });
+
+  onValue(ref(db, 'game'), snap => {
+    const game = snap.val();
+    if (!game) return;
+    const players = game.players || {};
+    
+    if (myId && !players[myId]) {
+      alert("The admin restarted the game! Rejoining...");
+      location.reload();
+      return;
+    }
+
+    const currentTurn = game.currentTurn;
+    const status = game.status;
+    const qState = game.question;
+    const isMyTurn = currentTurn === myId;
+    const me = players[myId];
+
+    if (!me) return;
+
+    if (status === 'waiting') {
+      document.getElementById('lobby-screen').classList.remove('hidden');
+      document.getElementById('game-screen').classList.add('hidden');
+      const ll = document.getElementById('lobby-list');
+      ll.innerHTML = Object.values(players).map(p => `<div class="p-row"><div class="p-avatar-sm">${p.avatarEmoji || '👤'}</div><span class="p-name">${p.name}</span></div>`).join('');
+      return;
+    }
+
+    document.getElementById('lobby-screen').classList.add('hidden');
+    document.getElementById('game-screen').classList.remove('hidden');
+
+    document.getElementById('my-tile').textContent = me.pos || 1;
+    document.getElementById('my-score').textContent = me.score || 0;
+    myPowerup = me.powerup || null;
+    document.getElementById('my-powerup').textContent = myPowerup ? myPowerup + 'x' : '—';
+
+    const pList = document.getElementById('p-list');
+    pList.innerHTML = '';
+    Object.entries(players).sort((a, b) => (b[1].score || 0) - (a[1].score || 0)).forEach(([id, p]) => {
+      const row = document.createElement('div');
+      row.className = 'p-row' + (id === myId ? ' me' : '');
+      row.innerHTML = `
+        <div class="p-avatar-sm" style="background:${p.avatarBg || '#0d1f3a'};border-radius:50%;">${p.avatarEmoji || '👤'}</div>
+        <span class="p-name">${p.name}${id === myId ? ' (you)' : ''}${p.powerup ? ` ⭐${p.powerup}x` : ''}</span>
+        <span class="p-tile">T${p.pos || 1}</span>
+        <span class="p-score">${p.score || 0}pt</span>
+      `;
+      pList.appendChild(row);
+    });
+
+    if (status === 'finished') {
+      document.getElementById('game-screen').classList.add('hidden');
+      document.getElementById('win-screen').classList.remove('hidden');
+      const sorted = Object.values(players).sort((a, b) => (b.score || 0) - (a.score || 0));
+      const winner = sorted[0];
+      const RANK = ['🥇', '🥈', '🥉', '4️⃣'];
+      document.getElementById('win-msg').textContent = winner?.name === myName ? '🏆 You win!' : winner?.name + ' wins!';
+      document.getElementById('win-sub').textContent = winner?.name === myName ? `You conquered CYBERHAX with ${winner.score || 0} pts!` : `They scored ${winner?.score || 0} pts. Better luck next time!`;
+      document.getElementById('win-lb').innerHTML = sorted.map((p, i) => `
+        <div class="p-row">
+          <span style="font-size:16px;min-width:24px;">${RANK[i] || ''}</span>
+          <div class="p-avatar-sm" style="background:${p.avatarBg || '#0d1f3a'};border-radius:50%;">${p.avatarEmoji || '👤'}</div>
+          <span class="p-name">${p.name}</span>
+          <span class="p-score">${p.score || 0}pt</span>
+        </div>`).join('');
+      return;
+    }
+
+    if (qState && qState.playerId === myId && qState.awaitingSteal) { showStealUI(players); return; } else { document.getElementById('steal-card').classList.add('hidden'); }
+    if (qState && qState.playerId === myId && qState.awaitingTeleport) { showTeleportUI(qState.teleportTo); return; } else { document.getElementById('teleport-card').classList.add('hidden'); }
+    if (qState && !qState.answered && qState.playerId === myId && qState.awaitingPowerupChoice) { showPowerupCard(qState.pendingPowerup); return; } else { document.getElementById('powerup-card').classList.add('hidden'); }
+    if (qState && !qState.answered && qState.playerId === myId && !qState.awaitingPowerupChoice) { showQuestionUI(qState.qIdx, qState.activatedPowerup || null); return; } else { document.getElementById('q-card').classList.add('hidden'); }
+
+    const pill = document.getElementById('status-pill');
+    if (isMyTurn) {
+      pill.className = 'status-pill your-turn'; pill.textContent = 'YOUR TURN';
+      document.getElementById('roll-card').classList.remove('hidden');
+      document.getElementById('wait-card').classList.add('hidden');
+    } else {
+      const cp = players[currentTurn];
+      pill.className = 'status-pill other-turn'; pill.textContent = 'Waiting...';
+      document.getElementById('roll-card').classList.add('hidden');
+      document.getElementById('wait-card').classList.remove('hidden');
+      document.getElementById('wait-msg').textContent = cp ? `${cp.avatarEmoji || ''} ${cp.name} is rolling` : 'Waiting...';
+    }
+  });
+}
+
+function showPowerupCard(multiplier){
+  hideAllCards();
+  document.getElementById('powerup-card').classList.remove('hidden');
+  pendingPowerup=multiplier;
+  document.getElementById('powerup-type').textContent=multiplier+'x';
+  document.getElementById('powerup-desc').textContent=`${multiplier}x points on next correct answer!`;
+}
+
+window.activatePowerup = async function(){
+  document.getElementById('powerup-card').classList.add('hidden');
+  await update(ref(db,'game'),{'question/awaitingPowerupChoice':false,'question/activatedPowerup':pendingPowerup,lastLog:`⚡ ${myName} activated ${pendingPowerup}x powerup!`,lastLogType:'bonus'});
+  await update(ref(db,`game/players/${myId}`),{powerup:null});
+  playSound('bonus');
+};
+
+window.savePowerup = async function(){
+  document.getElementById('powerup-card').classList.add('hidden');
+  await update(ref(db,`game/players/${myId}`),{powerup:pendingPowerup});
+  await update(ref(db,'game'),{'question/awaitingPowerupChoice':false,'question/activatedPowerup':null,lastLog:`💾 ${myName} saved ${pendingPowerup}x powerup`,lastLogType:'bonus'});
+};
+
+function showStealUI(players){
+  hideAllCards();
+  playSound('steal');
+  document.getElementById('steal-card').classList.remove('hidden');
+  const targets=document.getElementById('steal-targets');
+  targets.innerHTML='';
+  const hasPowerup=Object.entries(players).filter(([id,p])=>id!==myId&&p.powerup);
+  if(hasPowerup.length===0){
+    targets.innerHTML='<p style="color:#9060cc;font-size:13px;">No one has a powerup to steal!</p>';
+    setTimeout(()=>skipSteal(),2000);
+    return;
+  }
+  hasPowerup.forEach(([id,p])=>{
+    const btn=document.createElement('div');
+    btn.className='steal-target';
+    btn.innerHTML=`${p.avatarEmoji||'👤'} ${p.name} — ⭐${p.powerup}x`;
+    btn.onclick=()=>doSteal(id,p);
+    targets.appendChild(btn);
+  });
+}
+
+window.skipSteal = async function(){
+  document.getElementById('steal-card').classList.add('hidden');
+  await update(ref(db,'game'),{'question/awaitingSteal':false,lastLog:`${myName} had no one to steal from`,lastLogType:'bonus'});
+  await nextTurn();
+};
+
+window.doSteal = async function(targetId,targetP){
+  document.getElementById('steal-card').classList.add('hidden');
+  const stolen=targetP.powerup;
+  await update(ref(db,`game/players/${myId}`),{powerup:stolen});
+  await update(ref(db,`game/players/${targetId}`),{powerup:null});
+  await update(ref(db,'game'),{'question/awaitingSteal':false,lastLog:`💜 ${myName} stole ${stolen}x powerup from ${targetP.name}!`,lastLogType:'bonus'});
+  playSound('steal');
+  await nextTurn();
+};
+
+function showTeleportUI(teleportTo){
+  hideAllCards();
+  playSound('teleport');
+  document.getElementById('teleport-card').classList.remove('hidden');
+  document.getElementById('teleport-msg').textContent=`You got teleported back to tile ${teleportTo}!`;
+  setTimeout(async()=>{
+    document.getElementById('teleport-card').classList.add('hidden');
+    await update(ref(db,'game'),{'question/awaitingTeleport':false});
+    await nextTurn();
+  },2500);
+}
+
+function showQuestionUI(qIdx, activatedPowerup){
+  const QUESTIONS=window._QUESTIONS||[];
+  if(!QUESTIONS.length) return;
+  const q=QUESTIONS[qIdx%QUESTIONS.length];
+  hideAllCards();
+  document.getElementById('q-card').classList.remove('hidden');
+  document.getElementById('q-result').classList.add('hidden');
+
+  const badge=document.getElementById('active-badge');
+  if(activatedPowerup){badge.textContent=`⭐ ${activatedPowerup}x ACTIVE`;badge.classList.remove('hidden');}
+  else badge.classList.add('hidden');
+
+  const useArea=document.getElementById('use-powerup-area');
+  if(myPowerup&&!activatedPowerup){
+    useArea.innerHTML=`<button class="bonus-btn" style="font-size:12px;padding:8px;" onclick="useStoredPowerup()">⭐ Use ${myPowerup}x powerup</button>`;
+  } else { useArea.innerHTML=''; }
+
+  document.getElementById('q-cat-p').textContent='🔵 '+q.cat;
+  document.getElementById('q-text-p').textContent=q.q;
+  const optsEl=document.getElementById('q-opts-p');
+  optsEl.innerHTML='';
+  q.opts.forEach((o,i)=>{
+    const btn=document.createElement('button');
+    btn.className='q-opt';
+    btn.innerHTML=`<span class="letter">${String.fromCharCode(65+i)}</span>${o}`;
+    btn.onclick=()=>submitAnswer(i,q,btn,optsEl,activatedPowerup);
+    optsEl.appendChild(btn);
+  });
+}
+
+window.useStoredPowerup = async function(){
+  await update(ref(db,'game'),{'question/activatedPowerup':myPowerup,lastLog:`⚡ ${myName} activated ${myPowerup}x!`,lastLogType:'bonus'});
+  await update(ref(db,`game/players/${myId}`),{powerup:null});
+  playSound('bonus');
+};
+
+async function submitAnswer(chosen,q,btn,optsEl,activatedPowerup){
+  optsEl.querySelectorAll('.q-opt').forEach(b=>b.disabled=true);
+  const correct=chosen===q.ans;
+  optsEl.querySelectorAll('.q-opt')[q.ans].classList.add('correct');
+  if(!correct) btn.classList.add('wrong');
+  const multiplier=activatedPowerup||1;
+  const pts=correct?multiplier:0;
+  const result=document.getElementById('q-result');
+  result.className='result-box '+(correct?'correct':'wrong');
+  result.textContent=correct?`✅ Correct! +${pts}pt${pts>1?'s':''}! Roll again!`:'❌ Wrong! Turn ends.';
+  result.classList.remove('hidden');
+  if(correct){
+    const s=await get(ref(db,`game/players/${myId}`)); const cur=s.val()?.score||0;
+    await update(ref(db,`game/players/${myId}`),{score:cur+pts});
+    playSound('correct');
+  } else { playSound('wrong'); }
+  await update(ref(db,'game'),{'question/answered':true,'question/correct':correct,'question/chosen':chosen,lastLog:correct?`✅ ${myName} correct! +${pts}pt${multiplier>1?` (${multiplier}x)`:''}`:`❌ ${myName} wrong.`,lastLogType:correct?'good':'bad'});
+  setTimeout(async()=>{
+    document.getElementById('q-card').classList.add('hidden');
+    if(correct){ document.getElementById('roll-card').classList.remove('hidden'); await update(ref(db,'game'),{question:null}); }
+    else await nextTurn();
+  },1800);
+}
+
+window.rollDice = async function(){
+  const btn=document.getElementById('roll-btn'); btn.disabled=true;
+  const av=AVATARS[selectedAvatar]||{};
+  let i=0,face=0;
+  await new Promise(res=>{ const iv=setInterval(()=>{ face=Math.floor(Math.random()*6); document.getElementById('dice-face').textContent=DICE_FACES[face]; if(++i>10){clearInterval(iv);res();} },60); });
+  playSound('dice');
+  const roll=face+1;
+  const snap=await get(ref(db,`game/players/${myId}`)); const me=snap.val();
+  const newPos=Math.min((me.pos||1)+roll,50);
+  await update(ref(db,`game/players/${myId}`),{pos:newPos});
+  await set(ref(db,'game/diceRoll'),{roll,newPos,name:myName,avatarEmoji:av.emoji||'👤',t:Date.now()});
+  await update(ref(db,'game'),{lastLog:`🎲 ${myName} rolled ${roll} → Tile ${newPos}`,lastLogType:''});
+  btn.disabled=false;
+
+  if(newPos>=50){ await update(ref(db,'game'),{status:'finished',lastLog:`🏆 ${myName} wins!`,lastLogType:'good'}); return; }
+
+  if(TELEPORT_TILES.has(newPos)){
+    const back=Math.floor(Math.random()*8)+1;
+    const teleportTo=Math.max(1,newPos-back);
+    await update(ref(db,`game/players/${myId}`),{pos:teleportTo});
+    await update(ref(db,'game'),{question:{playerId:myId,awaitingTeleport:true,teleportTo},lastLog:`🌀 ${myName} got teleported back to tile ${teleportTo}!`,lastLogType:'bad'});
+    return;
+  }
+
+  if(BONUS_TILES.has(newPos)){
+    playSound('bonus');
+    const usedSnap=await get(ref(db,'game/usedQ')); const used=usedSnap.val()||[];
+    const qIdx=pickQuestion(used);
+    const rand=Math.random();
+    if(rand<0.2){
+      await update(ref(db,'game'),{question:{qIdx,playerId:myId,answered:false,isBonus:true,awaitingSteal:true},lastLog:`💜 ${myName} landed on BONUS — STEAL incoming!`,lastLogType:'bonus'});
+    } else {
+      const multiplier=POWERUP_TYPES[Math.floor(Math.random()*POWERUP_TYPES.length)];
+      await update(ref(db,'game'),{question:{qIdx,playerId:myId,answered:false,isBonus:true,awaitingPowerupChoice:true,pendingPowerup:multiplier},lastLog:`⭐ ${myName} got a ${multiplier}x powerup!`,lastLogType:'bonus'});
+    }
+    return;
+  }
+
+  if(CYBER_TILES.has(newPos)){
+    const usedSnap=await get(ref(db,'game/usedQ')); const used=usedSnap.val()||[];
+    const qIdx=pickQuestion(used);
+    const newUsed=used.length>=(window._QUESTIONS?.length||14)-1?[qIdx]:[...used,qIdx];
+    await set(ref(db,'game/usedQ'),newUsed);
+    await update(ref(db,'game'),{question:{qIdx,playerId:myId,answered:false,isBonus:false},lastLog:`🔵 ${myName} hit a Cybersec tile!`,lastLogType:'cyber'});
+    return;
+  }
+
+  await nextTurn();
+};
+
+function pickQuestion(used){
+  const total=window._QUESTIONS?.length||14;
+  const pool=Array.from({length:total},(_,i)=>i).filter(i=>!used.includes(i));
+  return(pool.length>0?pool:Array.from({length:total},(_,i)=>i))[Math.floor(Math.random()*(pool.length||total))];
+}
+
+async function nextTurn(){
+  const snap=await get(ref(db,'game')); const game=snap.val();
+  const players=game.players||{};
+  const ids=Object.keys(players).sort((a,b)=>(players[a].joined||0)-(players[b].joined||0));
+  const idx=ids.indexOf(myId);
+  const nextId=ids[(idx+1)%ids.length];
+  await update(ref(db,'game'),{currentTurn:nextId,question:null,lastLog:`↪ ${players[nextId]?.avatarEmoji||''} ${players[nextId]?.name||'next'}'s turn`,lastLogType:''});
+}
+
+function hideAllCards(){
+  ['roll-card','wait-card','powerup-card','q-card','steal-card','teleport-card'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+}
+
+window.leaveGame = async function(){
+  if(!myId) return;
+  await remove(ref(db,`game/players/${myId}`));
+  location.reload();
+};
+
+// Load questions
+const SHEET_CSV_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vRZK7rtaAQRYiPtM15GOs4-Iebk_0ii30YfSvZfbxbbLqCARRK8bhlzK4rd3NpW-BxKk8QEaVqUdF4C/pub?gid=0&single=true&output=csv';
+const FALLBACK=[
+  {q:"What does 'phishing' refer to?",opts:["Attacking servers","Tricking users into revealing credentials","Encrypting files","Sniffing traffic"],ans:1,cat:"Fallback"},
+  {q:"What port does HTTPS use by default?",opts:["80","21","443","8080"],ans:2,cat:"Fallback"},
+];
+function parseCSVRow(row){
+  const cols=[]; let cur='', inQ=false;
+  for(let i=0;i<row.length;i++){
+    const ch=row[i];
+    if(ch==='"'){ inQ=!inQ; }
+    else if(ch===','&&!inQ){ cols.push(cur.trim()); cur=''; }
+    else cur+=ch;
+  }
+  cols.push(cur.trim());
+  return cols;
+}
+async function loadQ(){
+  try{
+    const res=await fetch(SHEET_CSV_URL); const text=await res.text();
+    const rows=text.trim().split('\n').slice(1);
+    const ansMap={A:0,B:1,C:2,D:3};
+    const parsed=rows.map(row=>{
+      const cols=parseCSVRow(row);
+      return{q:cols[0],opts:[cols[1],cols[2],cols[3],cols[4]],ans:ansMap[cols[5]?.trim().toUpperCase()]||0,cat:cols[6]||'General'};
+    }).filter(q=>q.q&&q.q.length>2);
+    window._QUESTIONS=parsed.length>0?parsed:FALLBACK;
+  }catch(e){window._QUESTIONS=FALLBACK;}
+}
+loadQ();
